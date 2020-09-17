@@ -3,6 +3,7 @@
 #include "Vec3d.h"
 #include "ppc.h"
 #include "framebuffer.h"
+#include "WorldView.h"
 
 class TMesh {
 public:
@@ -17,8 +18,8 @@ public:
 	void SetToCube(Vec3d cc, float sideLength, unsigned int color0, unsigned int color1);
 	void Allocate(int _vertsN, int _trisN);
 	void DrawCubeQuadFaces(FrameBuffer *fb, PPC *ppc, unsigned int color);
-	void DrawWireFrame(FrameBuffer *fb, PPC *ppc, unsigned int color);
-	void DrawInterpolated(FrameBuffer *fb, PPC *ppc, unsigned int color);
+	void DrawWireFrame(WorldView * world, unsigned int color);
+	void DrawInterpolated(WorldView * world, unsigned int color);
 	void LoadBin(const char *fname);
 	Vec3d GetCenter();
 	void SetCenter(Vec3d center);

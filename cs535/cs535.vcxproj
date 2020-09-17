@@ -141,6 +141,7 @@
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="TMesh.h" />
     <ClInclude Include="vec3d.h" />
+    <ClInclude Include="WorldView.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="framebuffer.cpp" />
@@ -151,6 +152,7 @@
     <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="TMesh.cpp" />
     <ClCompile Include="vec3d.cpp" />
+    <ClCompile Include="WorldView.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

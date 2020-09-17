@@ -22,55 +22,52 @@ Scene::Scene() {
 	int v0 = 20;
 	int h = 480;
 	int w = 640;
+	float hfov = 55.0f;
 
-	fb = new FrameBuffer(u0, v0, w, h, 0);
-	fb->label("SW frame buffer");
-	fb->show();
-	fb->redraw();
+	WorldView * world = new WorldView("SW Frame Buffer", u0, v0, w, h, hfov, (int) views.size());
+	world->GetPPC()->SetFocalLength(.5f);
+	world->showCameraBox = false;
+	world->showCameraScreen = false;
+
+	views.push_back(world);
+
+	world = new WorldView("SW 3", u0 + w + 20, v0, w, h, hfov, (int) views.size());
+	world->GetPPC()->SetFocalLength(.5f);
+	world->cameraVf = 100.0f;
+
+	views.push_back(world);
 
 	gui->uiw->position(u0, v0 + h + 50);
 
-	float hfov = 55.0f;
-	ppc = new PPC(hfov, fb->w, fb->h);
-	ppc->SetFocalLength(.5f);
 	tmeshesN = 5;
 	tmeshes = new TMesh[tmeshesN];
 
-	Vec3d cc(0.0f, 0.0f, -100.0f);
-	float sideLength = 60.0f;
-
 	Render();
 
-
 }
 
-void CreateScene()
+Scene::~Scene()
 {
-
+	for (auto world : views)
+	{
+		delete world;
+	}
 }
 
-void Scene::Render() {
-
-	fb->SetBGR(0xFFFFFF00);
-	fb->ClearZB();
-
-
-	for (int tmi = 0; tmi < tmeshesN; tmi++) {
-		if (!tmeshes[tmi].onFlag)
-			continue;
-		tmeshes[tmi].DrawInterpolated(fb, ppc, 0xFF00FF00);
+void Scene::Render() 
+{
+	for (auto world : views)
+	{
+		world->Render(*this);
 	}
-
-	fb->redraw();
-
-
 }
 
 void Scene::DBG() {
 
+	PPC * ppc = views[0]->GetPPC();
 	{
 		Vec3d center = Vec3d::ZEROS;
-		tmeshes[0].LoadBin("geometry/teapot57k.bin");
+		tmeshes[0].LoadBin("geometry/teapot1k.bin");
 		tmeshes[0].SetCenter(center);
 		tmeshes[0].ScaleTo(200);
 
@@ -92,6 +89,8 @@ void Scene::DBG() {
 		tmeshes[4].ScaleTo(100);
 
 		ppc->SetPose(Vec3d(100, 100, 200), center, Vec3d::YAXIS);
+		views[1]->GetPPC()->SetPose(Vec3d(200, 0, -300), center, Vec3d::YAXIS);
+		//views[1]->GetPPC()->SetPose(Vec3d(100, 100, 300), center, Vec3d::YAXIS);
 
 		Vec3d p1 = Vec3d(0, 100, 200);
 		ppc->SetPose(p1, center, Vec3d::YAXIS);
@@ -101,6 +100,8 @@ void Scene::DBG() {
 		PPC * ppc2 = new PPC(*ppc);
 		Vec3d p2 = Vec3d(-100, 175, -100);
 		ppc2->SetPose(p2, center, Vec3d::YAXIS);
+		Render();
+		return;
 
 		int nSteps = 150;
 
@@ -127,7 +128,7 @@ void Scene::DBG() {
 			ppc->Interpolate(ppc1, ppc2, i, nSteps);
 		}
 
-		return;
+		//return;
 	}
 
 	{
@@ -155,35 +156,12 @@ void Scene::DBG() {
 			//ppc->TranslateRightLeft(-1);
 			//ppc->TranslateUpDown(-1);
 			//ppc->Roll(1);
-			//ppc->PanLeftRight(1);
+			ppc->PanLeftRight(1);
 			//ppc->TiltUpDown(1);
-			tmeshes[1].Rotate(tmeshes[1].GetCenter(), Vec3d::YAXIS, 1.0f);
-			ppc->SetFocalLength(1.001f);
+			//tmeshes[1].Rotate(tmeshes[1].GetCenter(), Vec3d::YAXIS, 1.0f);
+			//ppc->SetFocalLength(1.001f);
 		}
 		return;
-	}
-
-	{
-		cerr << "INFO: Running animation" << endl;
-		Vec3d origin = Vec3d(300, 300, 0);
-		Vec3d point = Vec3d(100, 200, 0);
-		Vec3d axis = Vec3d(2, 2, 2).Normalized();
-		cout << "AXIS: " << axis << endl;
-		cout << "ORIGIN: " << origin << endl;
-		cout << "POINT START: " << point << endl;
-
-		int r = 5;
-		float deg_step = PI / 180;
-		for (int i = 0; i <= 360; i++)
-		{
-			fb->SetBGR(0xFF00FFFF);
-			fb->DrawCircle((int)point[0], (int)point[1], r, 0xFFFF0000);
-			//fb->SetCircle((int)origin[0], (int)origin[1], r * 2, 0xFFFF0000);
-			fb->redraw();
-			point = point.Rotate(origin, axis, deg_step);
-			Fl::check();
-		}
-
 	}
 }
 

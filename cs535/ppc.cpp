@@ -3,8 +3,8 @@
 #include "stdafx.h"
 
 #include "ppc.h"
-
 #include "Matrix3d.h"
+#include "WorldView.h"
 
 PPC::PPC(float hfov, int _w, int _h) {
 
@@ -13,76 +13,9 @@ PPC::PPC(float hfov, int _w, int _h) {
 	C = Vec3d(0.0f, 0.0f, 0.0f);
 	a = Vec3d(1.0f, 0.0f, 0.0f);
 	b = Vec3d(0.0f, -1.0f, 0.0f);
-	float hfovd = hfov / 180.0f * M_PI;
+	float hfovd = hfov / 180.0f * (float) M_PI;
 	c = Vec3d(-(float)w / 2.0f, (float)h / 2, -(float)w / (2 * tanf(hfovd / 2.0f)));
 
-}
-
-int PPC::Project(Vec3d P, Vec3d &p) {
-
-	Matrix3d M;
-	M.SetColumn(0, a);
-	M.SetColumn(1, b);
-	M.SetColumn(2, c);
-	Vec3d q = M.Inverted()*(P - C);
-	float w = q[2];
-	if (w <= 0.0f)
-		return 0;
-
-	p[0] = q[0] / q[2];
-	p[1] = q[1] / q[2];
-	p[2] = 1.0f / w;
-	return 1;
-}
-
-Vec3d PPC::UnProject(Vec3d p) {
-
-	Vec3d ret;
-	ret = C + (a*p[0] + b*p[1] + c)/p[2];
-	return ret;
-
-}
-
-
-void PPC::TranslateRightLeft(float tstep) {
-
-	Vec3d rightDir = a.Normalized();
-	C = C + rightDir*tstep;
-
-}
-
-void PPC::TranslateFrontBack(float tstep) {
-
-	Vec3d tDir = GetViewDirection();
-	C = C + tDir*tstep;
-}
-
-void PPC::TranslateUpDown(float tStep) 
-{
-	Vec3d upDir = b.Normalized() * -1;
-	C = C + upDir * tStep;
-}
-
-void PPC::PanLeftRight(float rstep)
-{
-	Vec3d bDir = b.Normalized() * -1.0f;
-	a = a.Rotate(bDir, rstep);
-	c = c.Rotate(bDir, rstep);
-}
-
-void PPC::TiltUpDown(float rstep)
-{
-	Vec3d aDir = a.Normalized();
-	b = b.Rotate(aDir, rstep);
-	c = c.Rotate(aDir, rstep);
-}
-
-void PPC::Roll(float rstep)
-{
-	Vec3d vdDir = GetViewDirection();
-	a = a.Rotate(vdDir, rstep);
-	b = b.Rotate(vdDir, rstep);
-	c = c.Rotate(vdDir, rstep);
 }
 
 void PPC::SetPose(Vec3d newEye, Vec3d lookAtPoint, Vec3d upGuidance)
@@ -118,6 +51,86 @@ void PPC::Interpolate(PPC* ppc0, PPC* ppc1, int currStep, int stepCount)
 	ppc.SetPose(newC, newLookAt, newUp);
 }
 
+#pragma region Projection
+
+int PPC::Project(Vec3d P, Vec3d &p) {
+
+	Matrix3d M;
+	M.SetColumn(0, a);
+	M.SetColumn(1, b);
+	M.SetColumn(2, c);
+	Vec3d q = M.Inverted()*(P - C);
+	float w = q[2];
+	if (w <= 0.0f)
+		return 0;
+
+	p[0] = q[0] / q[2];
+	p[1] = q[1] / q[2];
+	p[2] = 1.0f / w;
+	return 1;
+}
+
+Vec3d PPC::UnProject(Vec3d p) {
+
+	Vec3d ret;
+	ret = C + (a*p[0] + b*p[1] + c)/p[2];
+	return ret;
+
+}
+
+#pragma endregion
+
+#pragma region Translation
+
+void PPC::TranslateRightLeft(float tstep) {
+
+	Vec3d rightDir = a.Normalized();
+	C = C + rightDir*tstep;
+
+}
+
+void PPC::TranslateFrontBack(float tstep) {
+
+	Vec3d tDir = GetViewDirection();
+	C = C + tDir*tstep;
+}
+
+void PPC::TranslateUpDown(float tStep) 
+{
+	Vec3d upDir = b.Normalized() * -1;
+	C = C + upDir * tStep;
+}
+
+#pragma endregion
+
+#pragma region Pan/Tilt/Roll
+
+void PPC::PanLeftRight(float rstep)
+{
+	Vec3d bDir = b.Normalized() * -1.0f;
+	a = a.Rotate(bDir, rstep);
+	c = c.Rotate(bDir, rstep);
+}
+
+void PPC::TiltUpDown(float rstep)
+{
+	Vec3d aDir = a.Normalized();
+	b = b.Rotate(aDir, rstep);
+	c = c.Rotate(aDir, rstep);
+}
+
+void PPC::Roll(float rstep)
+{
+	Vec3d vdDir = GetViewDirection();
+	a = a.Rotate(vdDir, rstep);
+	b = b.Rotate(vdDir, rstep);
+	c = c.Rotate(vdDir, rstep);
+}
+
+#pragma endregion
+
+#pragma region Helpers
+
 float PPC::GetFocalLength()
 {
 	return GetViewDirection() * c;
@@ -146,3 +159,45 @@ Vec3d PPC::GetViewDirection()
 	return (a ^ b).Normalized();
 }
 
+#pragma endregion
+
+#pragma region Visualization
+
+void PPC::Visualize(WorldView *world, float vf, Vec3d colorBox, Vec3d colorPoint)
+{
+	world->Draw3DPoint(C, 7, colorPoint);
+
+	Vec3d imageCorners[4];
+	float _w = GetFocalLength() / vf;
+	imageCorners[0] = UnProject(Vec3d(0.0f, 0.0f, _w));
+	imageCorners[1] = UnProject(Vec3d(0.0f, (float)h, _w));
+	imageCorners[2] = UnProject(Vec3d((float)w, (float)h, _w));
+	imageCorners[3] = UnProject(Vec3d((float)w, 0.0f, _w));
+
+	for (int i = 0; i < 4; i++)
+	{
+		world->Draw3DSegment(imageCorners[i], imageCorners[(i + 1) % 4], colorBox, colorBox);
+	}
+	world->Draw3DSegment(C, imageCorners[0], colorPoint, colorBox);
+}
+
+void PPC::Visualize(WorldView *world, WorldView *cameraWorld, float vf)
+{
+	float focal = GetFocalLength();
+	FrameBuffer * cameraFb = cameraWorld->GetFB();
+	for (int v = 0; v < cameraFb->h; v++)
+	{
+		for (int u = 0; u < cameraFb->w; u++)
+		{
+			if (cameraFb->GetZ(u, v) == 0.0f)
+				continue;
+
+			float _w = focal / vf;
+			Vec3d pix3d = UnProject(Vec3d(0.5f + (float)u, 0.5f + (float)v, _w));
+			Vec3d color; color.SetFromColor(cameraFb->Get(u, v));
+			world->Draw3DPoint(pix3d, 1, color);
+		}
+	}
+}
+
+#pragma endregion

@@ -9,7 +9,6 @@
 
 #include <tiffio.h>
 
-
 using namespace std;
 
 FrameBuffer::FrameBuffer(int u0, int v0,
@@ -42,6 +41,12 @@ int FrameBuffer::handle(int event) {
 		KeyboardHandle();
 		return 0;
 	}
+	case FL_MOVE: {
+		int u = Fl::event_y();
+		int v = Fl::event_x();
+		cout << u << " " << v << "         \r";
+		return 0;
+	}
 	default:
 		break;
 	}
@@ -53,51 +58,122 @@ void FrameBuffer::KeyboardHandle() {
 	int key = Fl::event_key();
 	switch (key) {
 	case FL_Up: {
-		cerr << "INFO: pressed up key";
+		scene->views[0]->GetPPC()->SetFocalLength(1.01f);
+		Fl::check();
+		scene->Render();
 		break;
 	}
-	default:
-		cerr << "INFO: do not understand keypress" << endl;
+	case FL_Down: {
+		scene->views[0]->GetPPC()->SetFocalLength(.99f);
+		Fl::check();
+		scene->Render();
+		break;
+	}
 	}
 }
 
 
-void FrameBuffer::Set(int u, int v, unsigned int color) {
-
+void FrameBuffer::Set(int u, int v, unsigned int color) 
+{
 	if (u < 0 || v < 0 || u > w - 1 || v > h - 1)
 		return;
 	pix[(h - 1 - v)*w + u] = color;
-
 }
 
-void FrameBuffer::SetBGR(unsigned int bgr) {
+unsigned int FrameBuffer::Get(int u, int v)
+{
+	if (u < 0 || v < 0 || u > w - 1 || v > h - 1)
+		return 0;
 
+	return pix[(h - 1 - v)*w + u];
+}
+
+float FrameBuffer::GetZ(int u, int v)
+{
+	if (u < 0 || v < 0 || u > w - 1 || v > h - 1)
+		return 0;
+
+	return zb[(h - 1 - v)*w + u];
+}
+
+void FrameBuffer::SetBGR(unsigned int bgr) 
+{
 	for (int uv = 0; uv < w*h; uv++)
 		pix[uv] = bgr;
 
 }
 
-void FrameBuffer::DrawRect(int u, int v, int w, int h, unsigned int color) {
-	for (int i = u; i <= w + u; i++) {
-		for (int j = v; j <= h + v; j++) {
-			Set(i, j, color);
+void FrameBuffer::Draw2DSquarePoint(Vec3d p, int psize, Vec3d color) {
+	int u = (int) p[0];
+	int v = (int) p[1];
+	unsigned int c = color.GetColor();
+
+	for (int i = u - psize / 2; i <= u + psize / 2; i++) {
+		for (int j = v - psize / 2; j <= v + psize / 2; j++) {
+			Set(i, j, c);
 		}
 	}
 }
 
-void FrameBuffer::DrawCircle(int u, int v, int r, unsigned int color)
+void FrameBuffer::Draw3DSquarePoint(Vec3d p, PPC *ppc, int psize, Vec3d color) {
+	Vec3d projected;
+	if (!ppc->Project(p, projected))
+		return;
+
+	int u = (int) projected[0];
+	int v = (int) projected[1];
+	unsigned int c = color.GetColor();
+
+	for (int cu = u - psize / 2; cu <= u + psize / 2; cu++) {
+		for (int cv = v - psize / 2; cv <= v + psize / 2; cv++) {
+			if (Farther(cu, cv, projected[2]))
+				continue;
+			Set(cu, cv, c);
+		}
+	}
+}
+
+void FrameBuffer::Draw2DPoint(Vec3d p, int r, Vec3d color)
 {
+	unsigned int c = color.GetColor();
+	int u = (int)p[0];
+	int v = (int)p[1];
 	for (int i = -r; i < r; i++)
 	{
 		for (int j = -r; j < r; j++)
 		{
 			if (i * i + j * j < r*r)
 			{
-				Set(i + u, j + v, color);
+				Set(i + u, j + v, c);
 			}
 		}
 	}
 }
+
+
+void FrameBuffer::Draw3DPoint(Vec3d p, PPC *ppc, int r, Vec3d color)
+{
+	Vec3d projected;
+	if (!ppc->Project(p, projected))
+		return;
+
+	unsigned int c = color.GetColor();
+	for (int i = -r; i < r; i++)
+	{
+		for (int j = -r; j < r; j++)
+		{
+			if (i * i + j * j < r*r)
+			{
+				int cu = i + (int) projected[0];
+				int cv = j + (int) projected[1];
+				if (Farther(cu, cv, projected[2]))
+					continue;
+				Set(cu, cv, c);
+			}
+		}
+	}
+}
+
 
 void ComputeBBox(Vec3d p1, Vec3d p2, Vec3d p3, float(&bbox)[2][2])
 {
@@ -105,6 +181,14 @@ void ComputeBBox(Vec3d p1, Vec3d p2, Vec3d p3, float(&bbox)[2][2])
 	bbox[0][1] = max(p1[0], max(p2[0], p3[0]));
 	bbox[1][0] = min(p1[1], min(p2[1], p3[1]));
 	bbox[1][1] = max(p1[1], max(p2[1], p3[1]));
+}
+
+void ClipBBox(float(&bbox)[2][2], int u, int v, int w, int h)
+{
+	bbox[0][0] = max(bbox[0][0], (float) u);
+	bbox[0][1] = min(bbox[0][1], (float) (u + w));
+	bbox[1][0] = max(bbox[1][0], (float) v);
+	bbox[1][1] = min(bbox[1][1], (float) (v + h));
 }
 
 Vec3d MakeEdge(Vec3d p1, Vec3d p2)
@@ -156,6 +240,7 @@ void FrameBuffer::Draw2DTriangle(Vec3d p1, Vec3d p2, Vec3d p3, Vec3d c1, Vec3d c
 
 	float bbox[2][2];
 	ComputeBBox(p1, p2, p3, bbox);
+	ClipBBox(bbox, 0, 0, w, h);
 
 	int left = (int)(bbox[0][0] + .5), right = (int)(bbox[0][1] - .5);
 	int top = (int)(bbox[1][0] + .5), bottom = (int)(bbox[1][1] - .5);
@@ -165,15 +250,15 @@ void FrameBuffer::Draw2DTriangle(Vec3d p1, Vec3d p2, Vec3d p3, Vec3d c1, Vec3d c
 
 	for (int currPixY = top; currPixY <= bottom; currPixY++, t = t + b)
 	{
-		int exit_early = 0; //Used for when we exit the triangle, we know we can continue onto next line;
+		int exit_early = 0; //Used for when we exit the triangle, we know we can continue onto next line because triangles are convex;
 		Vec3d e = t;
 
 		for (int currPixX = left; currPixX <= right; currPixX++, e = e + a)
 		{
 			if (e[0] >= 0 && e[1] >= 0 && e[2] >= 0)
 			{
-				Vec3d p = Vec3d(currPixX, currPixY, 1);
-				if (Farther(p[0], p[1], zCoefs * p))
+				Vec3d p = Vec3d((float) currPixX, (float) currPixY, 1);
+				if (Farther((int) p[0], (int) p[1], zCoefs * p))
 				{
 					continue;
 				}
@@ -267,10 +352,10 @@ int FrameBuffer::Farther(int u, int v, float currz) {
 	return 0;
 }
 
-void FrameBuffer::Draw2DSegment(Vec3d p0, Vec3d c0, Vec3d p1, Vec3d c1) {
+void FrameBuffer::Draw2DSegment(Vec3d p1, Vec3d p2, Vec3d c1, Vec3d c2) {
 
-	float du = fabsf((p0 - p1)[0]);
-	float dv = fabsf((p0 - p1)[1]);
+	float du = fabsf((p1 - p2)[0]);
+	float dv = fabsf((p1 - p2)[1]);
 	int stepsN;
 	if (du < dv) {
 		stepsN = 1+(int)dv;
@@ -280,24 +365,25 @@ void FrameBuffer::Draw2DSegment(Vec3d p0, Vec3d c0, Vec3d p1, Vec3d c1) {
 	}
 	for (int i = 0; i <= stepsN; i++) {
 		Vec3d cp, cc;
-		cp = p0 + (p1 - p0) * (float)i / (float)stepsN;
+		cp = p1 + (p2 - p1) * (float)i / (float)stepsN;
 		// cp[2] depth (one over w) at current pixel
 		int u = (int)cp[0], v = (int)cp[1];
 		if (Farther(u, v, cp[2]))
 			continue;
-		cc = c0 + (c1 - c0) * (float)i / (float)stepsN;
+		cc = c1 + (c2 - c1) * (float)i / (float)stepsN;
 		Set(u, v, cc.GetColor());
 	}
 
 }
-void FrameBuffer::Draw3DSegment(Vec3d P0, Vec3d P1, PPC *ppc, Vec3d c0, Vec3d c1) {
 
+void FrameBuffer::Draw3DSegment(Vec3d P1, Vec3d P2, PPC *ppc, Vec3d c1, Vec3d c2) 
+{
 	Vec3d p0, p1;
-	if (!ppc->Project(P0, p0))
+	if (!ppc->Project(P1, p0))
 		return;
-	if (!ppc->Project(P1, p1))
+	if (!ppc->Project(P2, p1))
 		return;
 
-	Draw2DSegment(p0, c0, p1, c1);
+	Draw2DSegment(p0, p1, c1, c2);
 
 }

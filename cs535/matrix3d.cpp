@@ -105,7 +105,7 @@ std::istream& operator>>(std::istream &input, Matrix3d &v)
 
 void Matrix3d::SetRotateX(const float thetaDegrees)
 {
-	const float theta = (thetaDegrees * M_PI) / 180.0f;
+	const float theta = (thetaDegrees * (float) M_PI) / 180.0f;
 	rows[0] = Vec3d::XAXIS; 
 	rows[1] = Vec3d(0, cos(theta), -sin(theta));
 	rows[2] = Vec3d(0, sin(theta), cos(theta));
@@ -113,7 +113,7 @@ void Matrix3d::SetRotateX(const float thetaDegrees)
 
 void Matrix3d::SetRotateY(const float thetaDegrees)
 {
-	const float theta = (thetaDegrees * M_PI) / 180.0f;
+	const float theta = (thetaDegrees * (float) M_PI) / 180.0f;
 	rows[0] = Vec3d(cosf(theta), 0, sinf(theta));
 	rows[1] = Vec3d::YAXIS;
 	rows[2] = Vec3d(-sinf(theta), 0, cosf(theta));
@@ -121,7 +121,7 @@ void Matrix3d::SetRotateY(const float thetaDegrees)
 
 void Matrix3d::SetRotateZ(const float thetaDegrees)
 {
-	const float theta = (thetaDegrees * M_PI) / 180.0f;
+	const float theta = (thetaDegrees * (float) M_PI) / 180.0f;
 	rows[0] = Vec3d(cos(theta), -sin(theta), 0);
 	rows[1] = Vec3d(sin(theta), cos(theta), 0);
 	rows[2] = Vec3d::ZAXIS;

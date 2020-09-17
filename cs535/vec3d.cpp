@@ -5,11 +5,11 @@
 #include "matrix3d.h"
 
 
-const Vec3d Vec3d::Vec3d::ONES = Vec3d(1, 1, 1);
-const Vec3d Vec3d::Vec3d::ZEROS = Vec3d(0, 0, 0);
-const Vec3d Vec3d::Vec3d::XAXIS = Vec3d(1, 0, 0);
-const Vec3d Vec3d::Vec3d::YAXIS = Vec3d(0, 1, 0);
-const Vec3d Vec3d::Vec3d::ZAXIS = Vec3d(0, 0, 1);
+const Vec3d Vec3d::Vec3d::ONES = Vec3d(1.0f, 1.0f, 1.0f);
+const Vec3d Vec3d::Vec3d::ZEROS = Vec3d(0.0f, 0.0f, 0.0f);
+const Vec3d Vec3d::Vec3d::XAXIS = Vec3d(1.0f, 0.0f, 0.0f);
+const Vec3d Vec3d::Vec3d::YAXIS = Vec3d(0.0f, 1.0f, 0.0f);
+const Vec3d Vec3d::Vec3d::ZAXIS = Vec3d(0.0f, 0.0f, 1.0f);
 
 Vec3d::Vec3d(float _x, float _y, float _z) : vals{_x, _y, _z}
 {

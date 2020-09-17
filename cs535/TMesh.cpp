@@ -113,7 +113,7 @@ void TMesh::DrawCubeQuadFaces(FrameBuffer *fb, PPC *ppc, unsigned int color) {
 
 }
 
-void TMesh::DrawWireFrame(FrameBuffer *fb, PPC *ppc, unsigned int color) {
+void TMesh::DrawWireFrame(WorldView * view, unsigned int color) {
 
 	for (int tri = 0; tri < trisN; tri++) {
 		Vec3d V0 = verts[tris[3 * tri + 0]];
@@ -122,14 +122,14 @@ void TMesh::DrawWireFrame(FrameBuffer *fb, PPC *ppc, unsigned int color) {
 		Vec3d c0 = colors[tris[3 * tri + 0]];
 		Vec3d c1 = colors[tris[3 * tri + 1]];
 		Vec3d c2 = colors[tris[3 * tri + 2]];
-		fb->Draw3DSegment(V0, V1, ppc, c0, c1);
-		fb->Draw3DSegment(V1, V2, ppc, c1, c2);
-		fb->Draw3DSegment(V2, V0, ppc, c2, c0);
+		view->Draw3DSegment(V0, V1, c0, c1);
+		view->Draw3DSegment(V1, V2, c1, c2);
+		view->Draw3DSegment(V2, V0, c2, c0);
 	}
 
 }
 
-void TMesh::DrawInterpolated(FrameBuffer *fb, PPC *ppc, unsigned int color)
+void TMesh::DrawInterpolated(WorldView * view, unsigned int color)
 {
 	for (int tri = 0; tri < trisN; tri++) {
 		Vec3d V0 = verts[tris[3 * tri + 0]];
@@ -138,7 +138,7 @@ void TMesh::DrawInterpolated(FrameBuffer *fb, PPC *ppc, unsigned int color)
 		Vec3d c0 = colors[tris[3 * tri + 0]];
 		Vec3d c1 = colors[tris[3 * tri + 1]];
 		Vec3d c2 = colors[tris[3 * tri + 2]];
-		fb->Draw3DTriangle(V0, V1, V2, ppc, c0, c1, c2);
+		view->Draw3DTriangle(V0, V1, V2, c0, c1, c2);
 	}
 }
 
