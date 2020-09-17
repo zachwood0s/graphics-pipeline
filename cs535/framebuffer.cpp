@@ -1,0 +1,303 @@
+#include "stdafx.h"
+
+#include "framebuffer.h"
+#include "math.h"
+#include <iostream>
+#include <algorithm>
+#include "scene.h"
+#include "matrix3d.h"
+
+#include <tiffio.h>
+
+
+using namespace std;
+
+FrameBuffer::FrameBuffer(int u0, int v0,
+	int _w, int _h, unsigned int _id) : Fl_Gl_Window(u0, v0, _w, _h, 0) {
+	w = _w;
+	h = _h;
+	pix = new unsigned int[w*h];
+	zb = new float[w*h];
+
+}
+
+void FrameBuffer::ClearZB() {
+
+	for (int uv = 0; uv < w*h; uv++)
+		zb[uv] = 0.0f;
+
+}
+
+void FrameBuffer::draw() {
+
+	glDrawPixels(w, h, GL_RGBA, GL_UNSIGNED_BYTE, pix);
+
+}
+
+int FrameBuffer::handle(int event) {
+
+	switch (event)
+	{
+	case FL_KEYBOARD: {
+		KeyboardHandle();
+		return 0;
+	}
+	default:
+		break;
+	}
+	return 0;
+}
+
+void FrameBuffer::KeyboardHandle() {
+
+	int key = Fl::event_key();
+	switch (key) {
+	case FL_Up: {
+		cerr << "INFO: pressed up key";
+		break;
+	}
+	default:
+		cerr << "INFO: do not understand keypress" << endl;
+	}
+}
+
+
+void FrameBuffer::Set(int u, int v, unsigned int color) {
+
+	if (u < 0 || v < 0 || u > w - 1 || v > h - 1)
+		return;
+	pix[(h - 1 - v)*w + u] = color;
+
+}
+
+void FrameBuffer::SetBGR(unsigned int bgr) {
+
+	for (int uv = 0; uv < w*h; uv++)
+		pix[uv] = bgr;
+
+}
+
+void FrameBuffer::DrawRect(int u, int v, int w, int h, unsigned int color) {
+	for (int i = u; i <= w + u; i++) {
+		for (int j = v; j <= h + v; j++) {
+			Set(i, j, color);
+		}
+	}
+}
+
+void FrameBuffer::DrawCircle(int u, int v, int r, unsigned int color)
+{
+	for (int i = -r; i < r; i++)
+	{
+		for (int j = -r; j < r; j++)
+		{
+			if (i * i + j * j < r*r)
+			{
+				Set(i + u, j + v, color);
+			}
+		}
+	}
+}
+
+void ComputeBBox(Vec3d p1, Vec3d p2, Vec3d p3, float(&bbox)[2][2])
+{
+	bbox[0][0] = min(p1[0], min(p2[0], p3[0]));
+	bbox[0][1] = max(p1[0], max(p2[0], p3[0]));
+	bbox[1][0] = min(p1[1], min(p2[1], p3[1]));
+	bbox[1][1] = max(p1[1], max(p2[1], p3[1]));
+}
+
+Vec3d MakeEdge(Vec3d p1, Vec3d p2)
+{
+	Vec3d edge;
+	edge[0] = p2[1] - p1[1]; 
+	edge[1] = -p2[0] + p1[0]; 
+	edge[2] = -p1[0] * p2[1] + p1[1] * p2[0];
+	return edge;
+}
+
+Vec3d GetColorCoeffs(Vec3d p1, Vec3d p2, Vec3d p3, Vec3d rastParam)
+{
+	Matrix3d m(p1, p2, p3);
+
+	// Set all the z's to one
+	m.SetColumn(2, Vec3d::ONES);
+
+	return m.Inverted() * rastParam;
+}
+
+void FrameBuffer::Draw2DTriangle(Vec3d p1, Vec3d p2, Vec3d p3, Vec3d c1, Vec3d c2, Vec3d c3)
+{
+	// Matrix of [a, b, c] where a, b, c are vectors
+	Matrix3d coefMatrix = Matrix3d(MakeEdge(p1, p2), MakeEdge(p2, p3), MakeEdge(p3, p1));
+
+	Vec3d rCoefs = GetColorCoeffs(p1, p2, p3, Vec3d(c1[0], c2[0], c3[0]));
+	Vec3d gCoefs = GetColorCoeffs(p1, p2, p3, Vec3d(c1[1], c2[1], c3[1]));
+	Vec3d bCoefs = GetColorCoeffs(p1, p2, p3, Vec3d(c1[2], c2[2], c3[2]));
+	Vec3d zCoefs = GetColorCoeffs(p1, p2, p3, Vec3d(p1[2], p2[2], p3[2]));
+
+	// Change the sign if the edges sidedness isn't right
+	// I found this techique on a MIT lecture
+	// Add up all of the c coefficients.
+	Vec3d c = coefMatrix.GetColumn(2);
+	float area = ((p1 - p2) ^ (p2 - p3)).Length() / 2.0f;
+	//float area = c * Vec3d::ONES; 
+	if (area < 0)
+	{
+		coefMatrix = coefMatrix * -1;
+	}
+	
+	if (fabs(area) < 0.001f)
+	{
+		return;
+	}
+	Vec3d a = coefMatrix.GetColumn(0);
+	Vec3d b = coefMatrix.GetColumn(1);
+
+	float bbox[2][2];
+	ComputeBBox(p1, p2, p3, bbox);
+
+	int left = (int)(bbox[0][0] + .5), right = (int)(bbox[0][1] - .5);
+	int top = (int)(bbox[1][0] + .5), bottom = (int)(bbox[1][1] - .5);
+
+	// This is the same as t = a * left + b * top + c;
+	Vec3d t = coefMatrix * Vec3d(left + .5f, top + .5f, 1);
+
+	for (int currPixY = top; currPixY <= bottom; currPixY++, t = t + b)
+	{
+		int exit_early = 0; //Used for when we exit the triangle, we know we can continue onto next line;
+		Vec3d e = t;
+
+		for (int currPixX = left; currPixX <= right; currPixX++, e = e + a)
+		{
+			if (e[0] >= 0 && e[1] >= 0 && e[2] >= 0)
+			{
+				Vec3d p = Vec3d(currPixX, currPixY, 1);
+				if (Farther(p[0], p[1], zCoefs * p))
+				{
+					continue;
+				}
+				Vec3d color = Matrix3d(rCoefs, gCoefs, bCoefs) * (p + Vec3d(.5f, .5f, 0));
+				Set(currPixX, currPixY, color.GetColor());
+				exit_early++;
+			}
+			else if (exit_early != 0)
+			{
+				break; // Continue onto next line
+			}
+
+		}
+	}
+}
+
+void FrameBuffer::Draw3DTriangle(Vec3d P1, Vec3d P2, Vec3d P3, PPC *ppc, Vec3d c1, Vec3d c2, Vec3d c3)
+{
+	Vec3d p1, p2, p3;
+	if (!ppc->Project(P1, p1))
+		return;
+	if (!ppc->Project(P2, p2))
+		return;
+	if (!ppc->Project(P3, p3))
+		return;
+
+	Draw2DTriangle(p1, p2, p3, c1, c2, c3);
+}
+
+// load a tiff image to pixel buffer
+void FrameBuffer::LoadTiff(char* fname) {
+	TIFF* in = TIFFOpen(fname, "r");
+	if (in == NULL) {
+		cerr << fname << " could not be opened" << endl;
+		return;
+	}
+
+	int width, height;
+	TIFFGetField(in, TIFFTAG_IMAGEWIDTH, &width);
+	TIFFGetField(in, TIFFTAG_IMAGELENGTH, &height);
+	if (w != width || h != height) {
+		w = width;
+		h = height;
+		delete[] pix;
+		pix = new unsigned int[w*h];
+		size(w, h);
+		glFlush();
+		glFlush();
+	}
+
+	if (TIFFReadRGBAImage(in, w, h, pix, 0) == 0) {
+		cerr << "failed to load " << fname << endl;
+	}
+
+	TIFFClose(in);
+}
+
+// save as tiff image
+void FrameBuffer::SaveAsTiff(const char *fname) {
+
+	TIFF* out = TIFFOpen(fname, "w");
+
+	if (out == NULL) {
+		cerr << fname << " could not be opened" << endl;
+		return;
+	}
+
+	TIFFSetField(out, TIFFTAG_IMAGEWIDTH, w);
+	TIFFSetField(out, TIFFTAG_IMAGELENGTH, h);
+	TIFFSetField(out, TIFFTAG_SAMPLESPERPIXEL, 4);
+	TIFFSetField(out, TIFFTAG_BITSPERSAMPLE, 8);
+	TIFFSetField(out, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);
+	TIFFSetField(out, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
+	TIFFSetField(out, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_RGB);
+
+	for (uint32 row = 0; row < (unsigned int)h; row++) {
+		TIFFWriteScanline(out, &pix[(h - row - 1) * w], row);
+	}
+
+	TIFFClose(out);
+}
+
+int FrameBuffer::Farther(int u, int v, float currz) {
+
+	if (u < 0 || u > w - 1 || v < 0 || v > h - 1)
+		return 1;
+	int uv = (h - 1 - v)*w + u;
+	if (currz < zb[uv])
+		return 1;
+	zb[uv] = currz;
+	return 0;
+}
+
+void FrameBuffer::Draw2DSegment(Vec3d p0, Vec3d c0, Vec3d p1, Vec3d c1) {
+
+	float du = fabsf((p0 - p1)[0]);
+	float dv = fabsf((p0 - p1)[1]);
+	int stepsN;
+	if (du < dv) {
+		stepsN = 1+(int)dv;
+	}
+	else {
+		stepsN = 1+(int)du;
+	}
+	for (int i = 0; i <= stepsN; i++) {
+		Vec3d cp, cc;
+		cp = p0 + (p1 - p0) * (float)i / (float)stepsN;
+		// cp[2] depth (one over w) at current pixel
+		int u = (int)cp[0], v = (int)cp[1];
+		if (Farther(u, v, cp[2]))
+			continue;
+		cc = c0 + (c1 - c0) * (float)i / (float)stepsN;
+		Set(u, v, cc.GetColor());
+	}
+
+}
+void FrameBuffer::Draw3DSegment(Vec3d P0, Vec3d P1, PPC *ppc, Vec3d c0, Vec3d c1) {
+
+	Vec3d p0, p1;
+	if (!ppc->Project(P0, p0))
+		return;
+	if (!ppc->Project(P1, p1))
+		return;
+
+	Draw2DSegment(p0, c0, p1, c1);
+
+}
