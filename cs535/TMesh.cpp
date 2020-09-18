@@ -8,6 +8,14 @@
 
 using namespace std;
 
+TMesh::~TMesh()
+{
+	delete verts;
+	delete colors;
+	delete normals;
+	delete tris;
+}
+
 
 void TMesh::Allocate(int _vertsN, int _trisN) 
 {
@@ -18,6 +26,7 @@ void TMesh::Allocate(int _vertsN, int _trisN)
 	normals = new Vec3d[vertsN];
 	tris = new unsigned int[trisN * 3];
 }
+
 
 void TMesh::SetToCube(Vec3d cc, float sideLength, unsigned int color0, unsigned int color1) 
 {

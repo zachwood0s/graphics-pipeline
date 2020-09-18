@@ -150,23 +150,17 @@ Vec3d MakeEdge(Vec3d p1, Vec3d p2)
 	Vec3d edge;
 	edge[0] = p2[1] - p1[1]; 
 	edge[1] = -p2[0] + p1[0]; 
-	edge[2] = -p1[0] * p2[1] + p1[1] * p2[0];
+	edge[2] = -(edge[0] * (p1[0] + p2[0]) + edge[1] * (p1[1] + p2[1])) / 2.0f;
+
 	return edge;
 }
 
-Vec3d GetColorCoeffs(Vec3d p1, Vec3d p2, Vec3d p3, Vec3d rastParam)
+Vec3d GetColorCoeffs(Matrix3d points, Vec3d rastParam)
 {
-	Matrix3d m(p1, p2, p3);
-
 	// Set all the z's to one
-	m.SetColumn(2, Vec3d::ONES);
+	points.SetColumn(2, Vec3d::ONES);
 
-	return m.Inverted() * rastParam;
-}
-
-float clamp(float val, float upper, float lower)
-{
-	return std::min(upper, std::max(val, lower));
+	return points.Inverted() * rastParam;
 }
 
 
@@ -314,6 +308,10 @@ void FrameBuffer::Draw3DPoint(Vec3d p, PPC *ppc, int r, Vec3d color)
 
 void FrameBuffer::Draw2DTriangle(Vec3d p1, Vec3d p2, Vec3d p3, Vec3d c1, Vec3d c2, Vec3d c3, int id)
 {
+	// Clamp the projected points onto a 64x64 sub-grid 
+	// This helps with numerical precision issues
+	p1.Clamp(64); p2.Clamp(64); p3.Clamp(64);
+
 	float area = ((p1 - p2) ^ (p2 - p3)).Length() / 2.0f;
 	
 	if (fabs(area) < 0.001f)
@@ -324,10 +322,19 @@ void FrameBuffer::Draw2DTriangle(Vec3d p1, Vec3d p2, Vec3d p3, Vec3d c1, Vec3d c
 	// Matrix of [a, b, c] where a, b, c are vectors
 	Matrix3d coefMatrix = Matrix3d(MakeEdge(p1, p2), MakeEdge(p2, p3), MakeEdge(p3, p1));
 
-	Vec3d rCoefs = GetColorCoeffs(p1, p2, p3, Vec3d(c1[0], c2[0], c3[0]));
-	Vec3d gCoefs = GetColorCoeffs(p1, p2, p3, Vec3d(c1[1], c2[1], c3[1]));
-	Vec3d bCoefs = GetColorCoeffs(p1, p2, p3, Vec3d(c1[2], c2[2], c3[2]));
-	Vec3d zCoefs = GetColorCoeffs(p1, p2, p3, Vec3d(p1[2], p2[2], p3[2]));
+	Matrix3d points(p1, p2, p3);
+	Vec3d reds(c1[0], c2[0], c3[0]);
+	Vec3d greens(c1[1], c2[1], c3[1]);
+	Vec3d blues(c1[2], c2[2], c3[2]);
+	Vec3d zvals = points.GetColumn(2);
+	Vec3d rCoefs = GetColorCoeffs(points, reds);
+	Vec3d gCoefs = GetColorCoeffs(points, greens);
+	Vec3d bCoefs = GetColorCoeffs(points, blues);
+	Vec3d zCoefs = GetColorCoeffs(points, zvals);
+	float minZ = zvals.Min();
+	float maxZ = zvals.Max(); 
+	Vec3d minColors(reds.Min(), greens.Min(), blues.Min());
+	Vec3d maxColors(reds.Max(), greens.Max(), blues.Max());
 
 	// Change the sign if the edges sidedness isn't right
 	// I found this techique on a MIT lecture
@@ -361,7 +368,10 @@ void FrameBuffer::Draw2DTriangle(Vec3d p1, Vec3d p2, Vec3d p3, Vec3d c1, Vec3d c
 			if (e[0] >= 0 && e[1] >= 0 && e[2] >= 0)
 			{
 				Vec3d p = Vec3d((float) currPixX, (float) currPixY, 1);
-				if (Farther((int) p[0], (int) p[1], zCoefs * p))
+
+				// Clamp the z value so that its valid for this triangle.
+				float currZ = clamp(zCoefs * p, minZ, maxZ);
+				if (Farther((int) p[0], (int) p[1], currZ))
 				{
 					continue;
 				}
@@ -369,10 +379,7 @@ void FrameBuffer::Draw2DTriangle(Vec3d p1, Vec3d p2, Vec3d p3, Vec3d c1, Vec3d c
 
 				// Clamp each color to somewhere in their starting range.
 				// This handles errors for colors outside the given color range.
-				for (int i = 0; i < 3; i++)
-				{
-					color[i] = clamp(color[i], max({ c1[i], c2[i], c3[i] }), min({ c1[i], c2[i], c3[i] }));
-				}
+				color.Clamp(minColors, maxColors);
 
 				Set(currPixX, currPixY, color.GetColor(), id);
 				exit_early++;
@@ -386,6 +393,14 @@ void FrameBuffer::Draw2DTriangle(Vec3d p1, Vec3d p2, Vec3d p3, Vec3d c1, Vec3d c
 	}
 }
 
+
+/// <summary>
+///	Draws a 3d traingle at the given 3D points using the provided PPC to do the projection. Each vertex
+/// is drawn with its correspoinding color. An optional triangle id value can be passed in for tracing back
+/// issues to the triangle that caused the issue. 
+/// </summary>
+/// <param name="ppc">The camera to project the point with</param>
+/// <param name="id">The unique id of the triangle that was drawn</param>
 void FrameBuffer::Draw3DTriangle(Vec3d P1, Vec3d P2, Vec3d P3, PPC *ppc, Vec3d c1, Vec3d c2, Vec3d c3, int id)
 {
 	Vec3d p1, p2, p3;

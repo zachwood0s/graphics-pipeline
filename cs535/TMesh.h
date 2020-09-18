@@ -15,6 +15,7 @@ public:
 	unsigned int *tris;
 	int trisN;
 	TMesh() : verts(0), vertsN(0), tris(0), trisN(0), colors(0), normals(0), onFlag(1) {};
+	~TMesh();
 	void SetToCube(Vec3d cc, float sideLength, unsigned int color0, unsigned int color1);
 	void Allocate(int _vertsN, int _trisN);
 	void DrawCubeQuadFaces(FrameBuffer *fb, PPC *ppc, unsigned int color);

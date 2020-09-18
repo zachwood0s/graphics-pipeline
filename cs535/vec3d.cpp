@@ -35,6 +35,39 @@ float Vec3d::Length()
 	return sqrtf(a * a);
 }
 
+float clamp(float val, float min, float max)
+{
+	return std::min(max, std::max(val, min));
+}
+
+void Vec3d::Clamp(Vec3d upper, Vec3d lower)
+{
+	Vec3d &v = *this;
+	v[0] = clamp(v[0], upper[0], lower[0]);
+	v[1] = clamp(v[1], upper[1], lower[1]);
+	v[2] = clamp(v[2], upper[2], lower[2]);
+}
+
+void Vec3d::Clamp(int nearest)
+{
+	Vec3d &v = *this;
+	v[0] = std::floorf(v[0] * nearest + .5f) / nearest;
+	v[1] = std::floorf(v[1] * nearest + .5f) / nearest;
+	v[2] = std::floorf(v[2] * nearest + .5f) / nearest;
+}
+
+float Vec3d::Min()
+{
+	Vec3d &v = *this;
+	return std::min({ v[0], v[1], v[2] });
+}
+
+float Vec3d::Max()
+{
+	Vec3d &v = *this;
+	return std::max({ v[0], v[1], v[2] });
+}
+
 const float& Vec3d::operator[](const int& n) const
 {
 	return vals[n];

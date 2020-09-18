@@ -22,7 +22,7 @@ Scene::Scene()
 	float hfov = 55.0f;
 
 	WorldView * world = new WorldView("SW Frame Buffer", u0, v0, w, h, hfov, (int) views.size());
-	world->GetPPC()->SetFocalLength(541.956f);
+	world->GetPPC()->SetFocalLength(547.376f);
 	world->showCameraBox = false;
 	world->showCameraScreen = false;
 	world->background.SetFromColor(0xffFF00FF);
@@ -40,9 +40,10 @@ Scene::Scene()
 	tmeshesN = 5;
 	tmeshes = new TMesh[tmeshesN];
 
-	tmeshes[0].LoadBin("geometry/happy4.bin");
+	tmeshes[0].LoadBin("geometry/teapot57k.bin");
 	tmeshes[0].SetCenter(Vec3d::ZEROS);
 	tmeshes[0].ScaleTo(200);
+	tmeshes[0].Rotate(Vec3d::ZEROS, Vec3d::YAXIS, 90);
 
 	views[0]->GetPPC()->SetPose(Vec3d(100, 100, 200), Vec3d::ZEROS, Vec3d::YAXIS);
 	views[1]->GetPPC()->SetPose(Vec3d(200, 0, -300), Vec3d::ZEROS, Vec3d::YAXIS);
@@ -57,6 +58,8 @@ Scene::~Scene()
 	{
 		delete world;
 	}
+
+	delete tmeshes;
 }
 
 void Scene::Render() 

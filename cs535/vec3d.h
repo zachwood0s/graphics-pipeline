@@ -24,6 +24,10 @@ public:
 	Vec3d Rotate(const Vec3d origin, const Vec3d direction, const float theta);
 	Vec3d Rotate(const Vec3d direction, const float theta);
 	void Set(const Vec3d other);
+	void Clamp(int nearest);
+	void Clamp(Vec3d minVals, Vec3d maxVals);
+	float Min();
+	float Max();
 
 	const float& operator[](const int& n) const;
 	float& operator[](const int& n);
@@ -44,4 +48,6 @@ public:
 	static Vec3d Interpolate(Vec3d p0, Vec3d p1, float t);
 
 };
+
+float clamp(float val, float min, float max);
 
