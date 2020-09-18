@@ -6,8 +6,8 @@
 #include "Matrix3d.h"
 #include "WorldView.h"
 
-PPC::PPC(float hfov, int _w, int _h) {
-
+PPC::PPC(float hfov, int _w, int _h) 
+{
 	w = _w;
 	h = _h;
 	C = Vec3d(0.0f, 0.0f, 0.0f);
@@ -53,8 +53,8 @@ void PPC::Interpolate(PPC* ppc0, PPC* ppc1, int currStep, int stepCount)
 
 #pragma region Projection
 
-int PPC::Project(Vec3d P, Vec3d &p) {
-
+int PPC::Project(Vec3d P, Vec3d &p) 
+{
 	Matrix3d M;
 	M.SetColumn(0, a);
 	M.SetColumn(1, b);
@@ -70,8 +70,8 @@ int PPC::Project(Vec3d P, Vec3d &p) {
 	return 1;
 }
 
-Vec3d PPC::UnProject(Vec3d p) {
-
+Vec3d PPC::UnProject(Vec3d p) 
+{
 	Vec3d ret;
 	ret = C + (a*p[0] + b*p[1] + c)/p[2];
 	return ret;
@@ -82,15 +82,14 @@ Vec3d PPC::UnProject(Vec3d p) {
 
 #pragma region Translation
 
-void PPC::TranslateRightLeft(float tstep) {
-
+void PPC::TranslateRightLeft(float tstep) 
+{
 	Vec3d rightDir = a.Normalized();
 	C = C + rightDir*tstep;
-
 }
 
-void PPC::TranslateFrontBack(float tstep) {
-
+void PPC::TranslateFrontBack(float tstep) 
+{
 	Vec3d tDir = GetViewDirection();
 	C = C + tDir*tstep;
 }

@@ -9,8 +9,8 @@
 using namespace std;
 
 
-void TMesh::Allocate(int _vertsN, int _trisN) {
-
+void TMesh::Allocate(int _vertsN, int _trisN) 
+{
 	vertsN = _vertsN;
 	trisN = _trisN;
 	verts = new Vec3d[vertsN];
@@ -19,8 +19,8 @@ void TMesh::Allocate(int _vertsN, int _trisN) {
 	tris = new unsigned int[trisN * 3];
 }
 
-void TMesh::SetToCube(Vec3d cc, float sideLength, unsigned int color0, unsigned int color1) {
-
+void TMesh::SetToCube(Vec3d cc, float sideLength, unsigned int color0, unsigned int color1) 
+{
 	vertsN = 8;
 	trisN = 6 * 2;
 	Allocate(vertsN, trisN);
@@ -101,7 +101,8 @@ void TMesh::SetToCube(Vec3d cc, float sideLength, unsigned int color0, unsigned 
 
 }
 
-void TMesh::DrawCubeQuadFaces(FrameBuffer *fb, PPC *ppc, unsigned int color) {
+void TMesh::DrawCubeQuadFaces(FrameBuffer *fb, PPC *ppc, unsigned int color) 
+{
 
 	Vec3d c0;
 	c0.SetFromColor(color);
@@ -113,8 +114,8 @@ void TMesh::DrawCubeQuadFaces(FrameBuffer *fb, PPC *ppc, unsigned int color) {
 
 }
 
-void TMesh::DrawWireFrame(WorldView * view, unsigned int color) {
-
+void TMesh::DrawWireFrame(WorldView * view, unsigned int color) 
+{
 	for (int tri = 0; tri < trisN; tri++) {
 		Vec3d V0 = verts[tris[3 * tri + 0]];
 		Vec3d V1 = verts[tris[3 * tri + 1]];
@@ -142,8 +143,8 @@ void TMesh::DrawInterpolated(WorldView * view, unsigned int color)
 	}
 }
 
-void TMesh::LoadBin(const char *fname) {
-
+void TMesh::LoadBin(const char *fname) 
+{
 	ifstream ifs(fname, ios::binary);
 	if (ifs.fail()) {
 		cerr << "INFO: cannot open file: " << fname << endl;
@@ -211,27 +212,25 @@ void TMesh::LoadBin(const char *fname) {
 
 }
 
-Vec3d TMesh::GetCenter() {
-
+Vec3d TMesh::GetCenter() 
+{
 	Vec3d ret(0.0f, 0.0f, 0.0f);
 	for (int vi = 0; vi < vertsN; vi++) {
 		ret = ret + verts[vi];
 	}
 	ret = ret / (float)vertsN;
 	return ret;
-
 }
 
-void TMesh::Translate(Vec3d tv) {
-
+void TMesh::Translate(Vec3d tv) 
+{
 	for (int vi = 0; vi < vertsN; vi++) {
 		verts[vi] = verts[vi] + tv;
 	}
-
 }
 
-void TMesh::SetCenter(Vec3d center) {
-
+void TMesh::SetCenter(Vec3d center) 
+{
 	Vec3d currCenter = GetCenter();
 	Translate(center - currCenter);
 }
@@ -286,5 +285,4 @@ void TMesh::ScaleTo(float size)
 
 	// Move back to original center
 	SetCenter(currCenter);
-
 }

@@ -13,7 +13,8 @@
 using namespace std;
 
 FrameBuffer::FrameBuffer(int u0, int v0,
-	int _w, int _h, const char *label) : Fl_Gl_Window(u0, v0, _w, _h, label) {
+	int _w, int _h, const char *label) : Fl_Gl_Window(u0, v0, _w, _h, label) 
+{
 	w = _w;
 	h = _h;
 	pix = new unsigned int[w*h];
@@ -22,24 +23,13 @@ FrameBuffer::FrameBuffer(int u0, int v0,
 
 }
 
-void FrameBuffer::ClearZB() {
-
-	for (int uv = 0; uv < w*h; uv++)
-	{
-		zb[uv] = 0.0f;
-		ids[uv] = -1;
-	}
-
-
-}
-
-void FrameBuffer::draw() {
-
+void FrameBuffer::draw() 
+{
 	glDrawPixels(w, h, GL_RGBA, GL_UNSIGNED_BYTE, pix);
-
 }
 
-int FrameBuffer::handle(int event) {
+int FrameBuffer::handle(int event) 
+{
 
 	switch (event)
 	{
@@ -59,8 +49,8 @@ int FrameBuffer::handle(int event) {
 	return 0;
 }
 
-void FrameBuffer::KeyboardHandle() {
-
+void FrameBuffer::KeyboardHandle() 
+{
 	int key = Fl::event_key();
 	switch (key) {
 	case FL_Up: {
@@ -78,6 +68,16 @@ void FrameBuffer::KeyboardHandle() {
 	}
 }
 
+#pragma region Get/Set
+
+void FrameBuffer::ClearZB() 
+{
+	for (int uv = 0; uv < w*h; uv++)
+	{
+		zb[uv] = 0.0f;
+		ids[uv] = -1;
+	}
+}
 
 void FrameBuffer::Set(int u, int v, unsigned int color) 
 {
@@ -125,7 +125,122 @@ void FrameBuffer::SetBGR(unsigned int bgr)
 
 }
 
-void FrameBuffer::Draw2DSquarePoint(Vec3d p, int psize, Vec3d color) {
+#pragma endregion
+
+#pragma region Helper Functions
+
+void ComputeBBox(Vec3d p1, Vec3d p2, Vec3d p3, float(&bbox)[2][2])
+{
+	bbox[0][0] = min(p1[0], min(p2[0], p3[0]));
+	bbox[0][1] = max(p1[0], max(p2[0], p3[0]));
+	bbox[1][0] = min(p1[1], min(p2[1], p3[1]));
+	bbox[1][1] = max(p1[1], max(p2[1], p3[1]));
+}
+
+void ClipBBox(float(&bbox)[2][2], int u, int v, int w, int h)
+{
+	bbox[0][0] = max(bbox[0][0], (float) u);
+	bbox[0][1] = min(bbox[0][1], (float) (u + w));
+	bbox[1][0] = max(bbox[1][0], (float) v);
+	bbox[1][1] = min(bbox[1][1], (float) (v + h));
+}
+
+Vec3d MakeEdge(Vec3d p1, Vec3d p2)
+{
+	Vec3d edge;
+	edge[0] = p2[1] - p1[1]; 
+	edge[1] = -p2[0] + p1[0]; 
+	edge[2] = -p1[0] * p2[1] + p1[1] * p2[0];
+	return edge;
+}
+
+Vec3d GetColorCoeffs(Vec3d p1, Vec3d p2, Vec3d p3, Vec3d rastParam)
+{
+	Matrix3d m(p1, p2, p3);
+
+	// Set all the z's to one
+	m.SetColumn(2, Vec3d::ONES);
+
+	return m.Inverted() * rastParam;
+}
+
+float clamp(float val, float upper, float lower)
+{
+	return std::min(upper, std::max(val, lower));
+}
+
+
+// load a tiff image to pixel buffer
+void FrameBuffer::LoadTiff(char* fname) 
+{
+	TIFF* in = TIFFOpen(fname, "r");
+	if (in == NULL) {
+		cerr << fname << " could not be opened" << endl;
+		return;
+	}
+
+	int width, height;
+	TIFFGetField(in, TIFFTAG_IMAGEWIDTH, &width);
+	TIFFGetField(in, TIFFTAG_IMAGELENGTH, &height);
+	if (w != width || h != height) {
+		w = width;
+		h = height;
+		delete[] pix;
+		pix = new unsigned int[w*h];
+		size(w, h);
+		glFlush();
+		glFlush();
+	}
+
+	if (TIFFReadRGBAImage(in, w, h, pix, 0) == 0) {
+		cerr << "failed to load " << fname << endl;
+	}
+
+	TIFFClose(in);
+}
+
+// save as tiff image
+void FrameBuffer::SaveAsTiff(const char *fname) 
+{
+	TIFF* out = TIFFOpen(fname, "w");
+
+	if (out == NULL) {
+		cerr << fname << " could not be opened" << endl;
+		return;
+	}
+
+	TIFFSetField(out, TIFFTAG_IMAGEWIDTH, w);
+	TIFFSetField(out, TIFFTAG_IMAGELENGTH, h);
+	TIFFSetField(out, TIFFTAG_SAMPLESPERPIXEL, 4);
+	TIFFSetField(out, TIFFTAG_BITSPERSAMPLE, 8);
+	TIFFSetField(out, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);
+	TIFFSetField(out, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
+	TIFFSetField(out, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_RGB);
+
+	for (uint32 row = 0; row < (unsigned int)h; row++) {
+		TIFFWriteScanline(out, &pix[(h - row - 1) * w], row);
+	}
+
+	TIFFClose(out);
+}
+
+int FrameBuffer::Farther(int u, int v, float currz) 
+{
+	if (u < 0 || u > w - 1 || v < 0 || v > h - 1)
+		return 1;
+	int uv = (h - 1 - v)*w + u;
+	if (currz < zb[uv])
+		return 1;
+	zb[uv] = currz;
+	return 0;
+}
+
+#pragma endregion
+
+#pragma region Rasterization
+
+void FrameBuffer::Draw2DSquarePoint(Vec3d p, int psize, Vec3d color) 
+{
 	int u = (int) p[0];
 	int v = (int) p[1];
 	unsigned int c = color.GetColor();
@@ -137,7 +252,8 @@ void FrameBuffer::Draw2DSquarePoint(Vec3d p, int psize, Vec3d color) {
 	}
 }
 
-void FrameBuffer::Draw3DSquarePoint(Vec3d p, PPC *ppc, int psize, Vec3d color) {
+void FrameBuffer::Draw3DSquarePoint(Vec3d p, PPC *ppc, int psize, Vec3d color) 
+{
 	Vec3d projected;
 	if (!ppc->Project(p, projected))
 		return;
@@ -194,47 +310,6 @@ void FrameBuffer::Draw3DPoint(Vec3d p, PPC *ppc, int r, Vec3d color)
 			}
 		}
 	}
-}
-
-
-void ComputeBBox(Vec3d p1, Vec3d p2, Vec3d p3, float(&bbox)[2][2])
-{
-	bbox[0][0] = min(p1[0], min(p2[0], p3[0]));
-	bbox[0][1] = max(p1[0], max(p2[0], p3[0]));
-	bbox[1][0] = min(p1[1], min(p2[1], p3[1]));
-	bbox[1][1] = max(p1[1], max(p2[1], p3[1]));
-}
-
-void ClipBBox(float(&bbox)[2][2], int u, int v, int w, int h)
-{
-	bbox[0][0] = max(bbox[0][0], (float) u);
-	bbox[0][1] = min(bbox[0][1], (float) (u + w));
-	bbox[1][0] = max(bbox[1][0], (float) v);
-	bbox[1][1] = min(bbox[1][1], (float) (v + h));
-}
-
-Vec3d MakeEdge(Vec3d p1, Vec3d p2)
-{
-	Vec3d edge;
-	edge[0] = p2[1] - p1[1]; 
-	edge[1] = -p2[0] + p1[0]; 
-	edge[2] = -p1[0] * p2[1] + p1[1] * p2[0];
-	return edge;
-}
-
-Vec3d GetColorCoeffs(Vec3d p1, Vec3d p2, Vec3d p3, Vec3d rastParam)
-{
-	Matrix3d m(p1, p2, p3);
-
-	// Set all the z's to one
-	m.SetColumn(2, Vec3d::ONES);
-
-	return m.Inverted() * rastParam;
-}
-
-float clamp(float val, float upper, float lower)
-{
-	return std::min(upper, std::max(val, lower));
 }
 
 void FrameBuffer::Draw2DTriangle(Vec3d p1, Vec3d p2, Vec3d p3, Vec3d c1, Vec3d c2, Vec3d c3, int id)
@@ -324,72 +399,8 @@ void FrameBuffer::Draw3DTriangle(Vec3d P1, Vec3d P2, Vec3d P3, PPC *ppc, Vec3d c
 	Draw2DTriangle(p1, p2, p3, c1, c2, c3, id);
 }
 
-// load a tiff image to pixel buffer
-void FrameBuffer::LoadTiff(char* fname) {
-	TIFF* in = TIFFOpen(fname, "r");
-	if (in == NULL) {
-		cerr << fname << " could not be opened" << endl;
-		return;
-	}
-
-	int width, height;
-	TIFFGetField(in, TIFFTAG_IMAGEWIDTH, &width);
-	TIFFGetField(in, TIFFTAG_IMAGELENGTH, &height);
-	if (w != width || h != height) {
-		w = width;
-		h = height;
-		delete[] pix;
-		pix = new unsigned int[w*h];
-		size(w, h);
-		glFlush();
-		glFlush();
-	}
-
-	if (TIFFReadRGBAImage(in, w, h, pix, 0) == 0) {
-		cerr << "failed to load " << fname << endl;
-	}
-
-	TIFFClose(in);
-}
-
-// save as tiff image
-void FrameBuffer::SaveAsTiff(const char *fname) {
-
-	TIFF* out = TIFFOpen(fname, "w");
-
-	if (out == NULL) {
-		cerr << fname << " could not be opened" << endl;
-		return;
-	}
-
-	TIFFSetField(out, TIFFTAG_IMAGEWIDTH, w);
-	TIFFSetField(out, TIFFTAG_IMAGELENGTH, h);
-	TIFFSetField(out, TIFFTAG_SAMPLESPERPIXEL, 4);
-	TIFFSetField(out, TIFFTAG_BITSPERSAMPLE, 8);
-	TIFFSetField(out, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);
-	TIFFSetField(out, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
-	TIFFSetField(out, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_RGB);
-
-	for (uint32 row = 0; row < (unsigned int)h; row++) {
-		TIFFWriteScanline(out, &pix[(h - row - 1) * w], row);
-	}
-
-	TIFFClose(out);
-}
-
-int FrameBuffer::Farther(int u, int v, float currz) {
-
-	if (u < 0 || u > w - 1 || v < 0 || v > h - 1)
-		return 1;
-	int uv = (h - 1 - v)*w + u;
-	if (currz < zb[uv])
-		return 1;
-	zb[uv] = currz;
-	return 0;
-}
-
-void FrameBuffer::Draw2DSegment(Vec3d p1, Vec3d p2, Vec3d c1, Vec3d c2) {
-
+void FrameBuffer::Draw2DSegment(Vec3d p1, Vec3d p2, Vec3d c1, Vec3d c2) 
+{
 	float du = fabsf((p1 - p2)[0]);
 	float dv = fabsf((p1 - p2)[1]);
 	int stepsN;
@@ -423,3 +434,5 @@ void FrameBuffer::Draw3DSegment(Vec3d P1, Vec3d P2, PPC *ppc, Vec3d c1, Vec3d c2
 	Draw2DSegment(p0, p1, c1, c2);
 
 }
+
+#pragma endregion

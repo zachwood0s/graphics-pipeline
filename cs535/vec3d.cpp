@@ -140,18 +140,17 @@ void Vec3d::Set(const Vec3d other)
 	vals[2] = other[2];
 }
 
-void Vec3d::SetFromColor(unsigned int color) {
-
+void Vec3d::SetFromColor(unsigned int color) 
+{
 	unsigned char *rgb = (unsigned char*)&color;
 	Vec3d &v = *this;
 	v[0] = (float)(rgb[0]) / 255.0f;
 	v[1] = (float)(rgb[1]) / 255.0f;
 	v[2] = (float)(rgb[2]) / 255.0f;
-
 }
 
-unsigned int Vec3d::GetColor() {
-
+unsigned int Vec3d::GetColor() 
+{
 	unsigned int ret;
 	Vec3d &v = *this;
 	unsigned char rgb[3];

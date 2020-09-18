@@ -70,7 +70,7 @@ FrameBuffer* WorldView::GetFB()
 }
 
 
-#pragma region Render functions
+#pragma region Render Functions
 
 void WorldView::Draw2DSegment(Vec3d p1, Vec3d p2, Vec3d c1, Vec3d c2)
 {

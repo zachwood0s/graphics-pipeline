@@ -10,11 +10,8 @@ using namespace std;
 
 #include <iostream>
 
-const double PI = 3.15159265;
-
-Scene::Scene() {
-
-
+Scene::Scene() 
+{
 	gui = new GUI();
 	gui->show();
 
@@ -70,7 +67,8 @@ void Scene::Render()
 	}
 }
 
-void Scene::DBG() {
+void Scene::DBG() 
+{
 
 	PPC * ppc = views[0]->GetPPC();
 	{
@@ -168,6 +166,7 @@ void Scene::DBG() {
 }
 
 
-void Scene::NewButton() {
+void Scene::NewButton() 
+{
 	cerr << "INFO: pressed New Button" << endl;
 }
