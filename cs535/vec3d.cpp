@@ -1,4 +1,5 @@
 #include <stdexcept>
+#include <algorithm>
 
 #include "stdafx.h"
 #include "vec3d.h"

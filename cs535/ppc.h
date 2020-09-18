@@ -12,7 +12,8 @@ public:
 	PPC(float hfov, int _w, int _h);
 
 	void SetPose(Vec3d newEye, Vec3d lookAtPoint, Vec3d upGuidance);
-	void SetFocalLength(float zoom);
+	void SetFocalLength(float focal);
+	void ZoomFocalLength(float zoom);
 
 	int Project(Vec3d P, Vec3d &p);
 	Vec3d UnProject(Vec3d p);

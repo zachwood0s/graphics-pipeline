@@ -6,10 +6,9 @@
 WorldView::WorldView(std::string name, int windowX, int windowY, int windowW, int windowH, float hFov, int _id)
 	:id(_id), showCameraBox(true), showCameraScreen(true), cameraVf(20.0f)
 {
-	fb = new FrameBuffer(windowX, windowY, windowW, windowH, 0);
+	fb = new FrameBuffer(windowX, windowY, windowW, windowH, name.c_str());
 	ppc = new PPC(hFov, windowW, windowH);
 
-	fb->label(name.c_str());
 	fb->show();
 	fb->redraw();
 
@@ -83,14 +82,14 @@ void WorldView::Draw3DSegment(Vec3d p1, Vec3d p2, Vec3d c1, Vec3d c2)
 	fb->Draw3DSegment(p1, p2, ppc, c1, c2);
 }
 
-void WorldView::Draw2DTriangle(Vec3d p1, Vec3d p2, Vec3d p3, Vec3d c1, Vec3d c2, Vec3d c3)
+void WorldView::Draw2DTriangle(Vec3d p1, Vec3d p2, Vec3d p3, Vec3d c1, Vec3d c2, Vec3d c3, int id)
 {
-	fb->Draw2DTriangle(p1, p2, p3, c1, c2, c3);
+	fb->Draw2DTriangle(p1, p2, p3, c1, c2, c3, id);
 }
 
-void WorldView::Draw3DTriangle(Vec3d p1, Vec3d p2, Vec3d p3, Vec3d c1, Vec3d c2, Vec3d c3)
+void WorldView::Draw3DTriangle(Vec3d p1, Vec3d p2, Vec3d p3, Vec3d c1, Vec3d c2, Vec3d c3, int id)
 {
-	fb->Draw3DTriangle(p1, p2, p3, ppc, c1, c2, c3);
+	fb->Draw3DTriangle(p1, p2, p3, ppc, c1, c2, c3, id);
 }
 
 void WorldView::Draw2DPoint(Vec3d p, int radius, Vec3d color)

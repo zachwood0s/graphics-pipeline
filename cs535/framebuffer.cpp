@@ -1,9 +1,10 @@
+#include <iostream>
+#include <algorithm>
+
 #include "stdafx.h"
 
 #include "framebuffer.h"
 #include "math.h"
-#include <iostream>
-#include <algorithm>
 #include "scene.h"
 #include "matrix3d.h"
 
@@ -12,18 +13,23 @@
 using namespace std;
 
 FrameBuffer::FrameBuffer(int u0, int v0,
-	int _w, int _h, unsigned int _id) : Fl_Gl_Window(u0, v0, _w, _h, 0) {
+	int _w, int _h, const char *label) : Fl_Gl_Window(u0, v0, _w, _h, label) {
 	w = _w;
 	h = _h;
 	pix = new unsigned int[w*h];
 	zb = new float[w*h];
+	ids = new int[w*h];
 
 }
 
 void FrameBuffer::ClearZB() {
 
 	for (int uv = 0; uv < w*h; uv++)
+	{
 		zb[uv] = 0.0f;
+		ids[uv] = -1;
+	}
+
 
 }
 
@@ -42,9 +48,9 @@ int FrameBuffer::handle(int event) {
 		return 0;
 	}
 	case FL_MOVE: {
-		int u = Fl::event_y();
-		int v = Fl::event_x();
-		cout << u << " " << v << "         \r";
+		int u = Fl::event_x();
+		int v = Fl::event_y();
+		cout << "TRI: "<< GetId(u, v) << " fv: "<< scene->views[0]->GetPPC()->GetFocalLength() << " "<< u << ", "<< v << "         \r";
 		return 0;
 	}
 	default:
@@ -58,13 +64,13 @@ void FrameBuffer::KeyboardHandle() {
 	int key = Fl::event_key();
 	switch (key) {
 	case FL_Up: {
-		scene->views[0]->GetPPC()->SetFocalLength(1.01f);
+		scene->views[0]->GetPPC()->ZoomFocalLength(1.01f);
 		Fl::check();
 		scene->Render();
 		break;
 	}
 	case FL_Down: {
-		scene->views[0]->GetPPC()->SetFocalLength(.99f);
+		scene->views[0]->GetPPC()->ZoomFocalLength(.99f);
 		Fl::check();
 		scene->Render();
 		break;
@@ -75,9 +81,17 @@ void FrameBuffer::KeyboardHandle() {
 
 void FrameBuffer::Set(int u, int v, unsigned int color) 
 {
+	Set(u, v, color, -1);
+}
+
+void FrameBuffer::Set(int u, int v, unsigned int color, int id) 
+{
 	if (u < 0 || v < 0 || u > w - 1 || v > h - 1)
 		return;
-	pix[(h - 1 - v)*w + u] = color;
+
+	int idx = (h - 1 - v)*w + u;
+	pix[idx] = color;
+	ids[idx] = id;
 }
 
 unsigned int FrameBuffer::Get(int u, int v)
@@ -94,6 +108,14 @@ float FrameBuffer::GetZ(int u, int v)
 		return 0;
 
 	return zb[(h - 1 - v)*w + u];
+}
+
+int FrameBuffer::GetId(int u, int v)
+{
+	if (u < 0 || v < 0 || u > w - 1 || v > h - 1)
+		return 0;
+
+	return ids[(h - 1 - v)*w + u];
 }
 
 void FrameBuffer::SetBGR(unsigned int bgr) 
@@ -210,8 +232,20 @@ Vec3d GetColorCoeffs(Vec3d p1, Vec3d p2, Vec3d p3, Vec3d rastParam)
 	return m.Inverted() * rastParam;
 }
 
-void FrameBuffer::Draw2DTriangle(Vec3d p1, Vec3d p2, Vec3d p3, Vec3d c1, Vec3d c2, Vec3d c3)
+float clamp(float val, float upper, float lower)
 {
+	return std::min(upper, std::max(val, lower));
+}
+
+void FrameBuffer::Draw2DTriangle(Vec3d p1, Vec3d p2, Vec3d p3, Vec3d c1, Vec3d c2, Vec3d c3, int id)
+{
+	float area = ((p1 - p2) ^ (p2 - p3)).Length() / 2.0f;
+	
+	if (fabs(area) < 0.001f)
+	{
+		return;
+	}
+
 	// Matrix of [a, b, c] where a, b, c are vectors
 	Matrix3d coefMatrix = Matrix3d(MakeEdge(p1, p2), MakeEdge(p2, p3), MakeEdge(p3, p1));
 
@@ -222,21 +256,15 @@ void FrameBuffer::Draw2DTriangle(Vec3d p1, Vec3d p2, Vec3d p3, Vec3d c1, Vec3d c
 
 	// Change the sign if the edges sidedness isn't right
 	// I found this techique on a MIT lecture
-	// Add up all of the c coefficients.
-	Vec3d c = coefMatrix.GetColumn(2);
-	float area = ((p1 - p2) ^ (p2 - p3)).Length() / 2.0f;
-	//float area = c * Vec3d::ONES; 
+
 	if (area < 0)
 	{
 		coefMatrix = coefMatrix * -1;
 	}
-	
-	if (fabs(area) < 0.001f)
-	{
-		return;
-	}
+
 	Vec3d a = coefMatrix.GetColumn(0);
 	Vec3d b = coefMatrix.GetColumn(1);
+	Vec3d c = coefMatrix.GetColumn(2);
 
 	float bbox[2][2];
 	ComputeBBox(p1, p2, p3, bbox);
@@ -262,8 +290,16 @@ void FrameBuffer::Draw2DTriangle(Vec3d p1, Vec3d p2, Vec3d p3, Vec3d c1, Vec3d c
 				{
 					continue;
 				}
-				Vec3d color = Matrix3d(rCoefs, gCoefs, bCoefs) * (p + Vec3d(.5f, .5f, 0));
-				Set(currPixX, currPixY, color.GetColor());
+				Vec3d color = Matrix3d(rCoefs, gCoefs, bCoefs) * p;
+
+				// Clamp each color to somewhere in their starting range.
+				// This handles errors for colors outside the given color range.
+				for (int i = 0; i < 3; i++)
+				{
+					color[i] = clamp(color[i], max({ c1[i], c2[i], c3[i] }), min({ c1[i], c2[i], c3[i] }));
+				}
+
+				Set(currPixX, currPixY, color.GetColor(), id);
 				exit_early++;
 			}
 			else if (exit_early != 0)
@@ -275,7 +311,7 @@ void FrameBuffer::Draw2DTriangle(Vec3d p1, Vec3d p2, Vec3d p3, Vec3d c1, Vec3d c
 	}
 }
 
-void FrameBuffer::Draw3DTriangle(Vec3d P1, Vec3d P2, Vec3d P3, PPC *ppc, Vec3d c1, Vec3d c2, Vec3d c3)
+void FrameBuffer::Draw3DTriangle(Vec3d P1, Vec3d P2, Vec3d P3, PPC *ppc, Vec3d c1, Vec3d c2, Vec3d c3, int id)
 {
 	Vec3d p1, p2, p3;
 	if (!ppc->Project(P1, p1))
@@ -285,7 +321,7 @@ void FrameBuffer::Draw3DTriangle(Vec3d P1, Vec3d P2, Vec3d P3, PPC *ppc, Vec3d c
 	if (!ppc->Project(P3, p3))
 		return;
 
-	Draw2DTriangle(p1, p2, p3, c1, c2, c3);
+	Draw2DTriangle(p1, p2, p3, c1, c2, c3, id);
 }
 
 // load a tiff image to pixel buffer

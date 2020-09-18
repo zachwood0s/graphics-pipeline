@@ -136,12 +136,21 @@ float PPC::GetFocalLength()
 	return GetViewDirection() * c;
 }
 
-void PPC::SetFocalLength(float zoom)
+void PPC::ZoomFocalLength(float zoom)
 {
 	Vec3d viewDirection = GetViewDirection();
 	float newFocal = GetFocalLength() * zoom;
 	Vec3d principal = GetPrincipal();
 	Vec3d newc = viewDirection * newFocal - a * principal[0] - b * principal[1];
+
+	c = newc;
+}
+
+void PPC::SetFocalLength(float focal)
+{
+	Vec3d viewDirection = GetViewDirection();
+	Vec3d principal = GetPrincipal();
+	Vec3d newc = viewDirection * focal - a * principal[0] - b * principal[1];
 
 	c = newc;
 }

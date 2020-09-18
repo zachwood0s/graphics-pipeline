@@ -25,14 +25,15 @@ Scene::Scene() {
 	float hfov = 55.0f;
 
 	WorldView * world = new WorldView("SW Frame Buffer", u0, v0, w, h, hfov, (int) views.size());
-	world->GetPPC()->SetFocalLength(.5f);
+	world->GetPPC()->SetFocalLength(541.956f);
 	world->showCameraBox = false;
 	world->showCameraScreen = false;
+	world->background.SetFromColor(0xffFF00FF);
 
 	views.push_back(world);
 
 	world = new WorldView("SW 3", u0 + w + 20, v0, w, h, hfov, (int) views.size());
-	world->GetPPC()->SetFocalLength(.5f);
+	world->GetPPC()->ZoomFocalLength(.5f);
 	world->cameraVf = 100.0f;
 
 	views.push_back(world);
@@ -41,6 +42,13 @@ Scene::Scene() {
 
 	tmeshesN = 5;
 	tmeshes = new TMesh[tmeshesN];
+
+	tmeshes[0].LoadBin("geometry/happy4.bin");
+	tmeshes[0].SetCenter(Vec3d::ZEROS);
+	tmeshes[0].ScaleTo(200);
+
+	views[0]->GetPPC()->SetPose(Vec3d(100, 100, 200), Vec3d::ZEROS, Vec3d::YAXIS);
+	views[1]->GetPPC()->SetPose(Vec3d(200, 0, -300), Vec3d::ZEROS, Vec3d::YAXIS);
 
 	Render();
 
@@ -67,9 +75,6 @@ void Scene::DBG() {
 	PPC * ppc = views[0]->GetPPC();
 	{
 		Vec3d center = Vec3d::ZEROS;
-		tmeshes[0].LoadBin("geometry/teapot1k.bin");
-		tmeshes[0].SetCenter(center);
-		tmeshes[0].ScaleTo(200);
 
 		tmeshes[1].LoadBin("geometry/teapot1k.bin");
 		tmeshes[1].SetCenter(Vec3d(-100.0f, -50.0f, 100.0f));
@@ -88,8 +93,6 @@ void Scene::DBG() {
 		tmeshes[4].SetCenter(Vec3d(100.0f, -50.0f, 100.0f));
 		tmeshes[4].ScaleTo(100);
 
-		ppc->SetPose(Vec3d(100, 100, 200), center, Vec3d::YAXIS);
-		views[1]->GetPPC()->SetPose(Vec3d(200, 0, -300), center, Vec3d::YAXIS);
 		//views[1]->GetPPC()->SetPose(Vec3d(100, 100, 300), center, Vec3d::YAXIS);
 
 		Vec3d p1 = Vec3d(0, 100, 200);
@@ -101,7 +104,6 @@ void Scene::DBG() {
 		Vec3d p2 = Vec3d(-100, 175, -100);
 		ppc2->SetPose(p2, center, Vec3d::YAXIS);
 		Render();
-		return;
 
 		int nSteps = 150;
 

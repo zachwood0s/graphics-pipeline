@@ -31,8 +31,8 @@ public:
 
 	void Draw2DSegment(Vec3d p1, Vec3d p2, Vec3d c1, Vec3d c2);
 	void Draw3DSegment(Vec3d P1, Vec3d P2, Vec3d c1, Vec3d c2);
-	void Draw2DTriangle(Vec3d p1, Vec3d p2, Vec3d p3, Vec3d c1, Vec3d c2, Vec3d c3);
-	void Draw3DTriangle(Vec3d p1, Vec3d p2, Vec3d p3, Vec3d c1, Vec3d c2, Vec3d c3);
+	void Draw2DTriangle(Vec3d p1, Vec3d p2, Vec3d p3, Vec3d c1, Vec3d c2, Vec3d c3, int id = -1);
+	void Draw3DTriangle(Vec3d p1, Vec3d p2, Vec3d p3, Vec3d c1, Vec3d c2, Vec3d c3, int id = -1);
 	void Draw2DPoint(Vec3d p, int radius, Vec3d color);
 	void Draw3DPoint(Vec3d p, int radius, Vec3d color);
 	void Draw2DSquarePoint(Vec3d p, int size, Vec3d color);

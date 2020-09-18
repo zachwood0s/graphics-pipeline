@@ -138,7 +138,7 @@ void TMesh::DrawInterpolated(WorldView * view, unsigned int color)
 		Vec3d c0 = colors[tris[3 * tri + 0]];
 		Vec3d c1 = colors[tris[3 * tri + 1]];
 		Vec3d c2 = colors[tris[3 * tri + 2]];
-		view->Draw3DTriangle(V0, V1, V2, c0, c1, c2);
+		view->Draw3DTriangle(V0, V1, V2, c0, c1, c2, tri);
 	}
 }
 
