@@ -393,14 +393,6 @@ void FrameBuffer::Draw2DTriangle(Vec3d p1, Vec3d p2, Vec3d p3, Vec3d c1, Vec3d c
 	}
 }
 
-
-/// <summary>
-///	Draws a 3d traingle at the given 3D points using the provided PPC to do the projection. Each vertex
-/// is drawn with its correspoinding color. An optional triangle id value can be passed in for tracing back
-/// issues to the triangle that caused the issue. 
-/// </summary>
-/// <param name="ppc">The camera to project the point with</param>
-/// <param name="id">The unique id of the triangle that was drawn</param>
 void FrameBuffer::Draw3DTriangle(Vec3d P1, Vec3d P2, Vec3d P3, PPC *ppc, Vec3d c1, Vec3d c2, Vec3d c3, int id)
 {
 	Vec3d p1, p2, p3;
