@@ -118,7 +118,7 @@ Vec3d Vec3d::operator/(const float n)
 
 std::ostream& operator<<(std::ostream &output, const Vec3d &v)
 {
-	output << v[0] << ", " << v[1] << ", " << v[2];
+	output << v[0] << " " << v[1] << " " << v[2];
 	return output;
 }
 

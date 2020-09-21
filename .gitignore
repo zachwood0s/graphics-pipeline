@@ -362,3 +362,5 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+cs535/frames
+cs535/testCamera.ppc

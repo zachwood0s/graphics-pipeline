@@ -23,11 +23,35 @@ public:
 
 	Vec3d GetColumn(int column_idx) const;
 	void SetColumn(int column_idx, const Vec3d value);
+
+	/// <summary>
+	/// Returns the iverted version of this matrix
+	/// </summary>
+	/// <returns>The inverted version of this matrix</returns>
 	Matrix3d Inverted();
+
+	/// <summary>
+	/// Returns the transposed version of this matrix
+	/// </summary>
+	/// <returns>The transposed version of this matrix</returns>
 	Matrix3d Transposed();
 
+	/// <summary>
+	/// Sets this matrix as a rotation matrix about the x-axis. 
+	/// </summary>
+	/// <param name="theta">The rotation amount in degrees</param>
 	void SetRotateX(const float theta);
+
+	/// <summary>
+	/// Sets this matrix as a rotation matrix about the y-axis. 
+	/// </summary>
+	/// <param name="theta">The rotation amount in degrees</param>
 	void SetRotateY(const float theta);
+
+	/// <summary>
+	/// Sets this matrix as a rotation matrix about the z-axis. 
+	/// </summary>
+	/// <param name="theta">The rotation amount in degrees</param>
 	void SetRotateZ(const float theta);
 
 };

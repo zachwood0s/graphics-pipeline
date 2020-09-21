@@ -1,5 +1,7 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
+#include <iostream>
+#include <fstream>
 #include "stdafx.h"
 
 #include "ppc.h"
@@ -16,6 +18,33 @@ PPC::PPC(float hfov, int _w, int _h)
 	float hfovd = hfov / 180.0f * (float) M_PI;
 	c = Vec3d(-(float)w / 2.0f, (float)h / 2, -(float)w / (2 * tanf(hfovd / 2.0f)));
 
+}
+
+void PPC::ReadFromFile(std::string fname)
+{
+	std::ifstream file(fname);
+	if (!file.is_open())
+	{
+		std::cerr << "INFO: cannot open file: " << fname.c_str() << std::endl;
+		return;
+	}
+
+	file >> a >> b >> c >> C;
+
+
+}
+
+void PPC::WriteToFile(std::string fname)
+{
+	std::ofstream file (fname);
+
+	if (!file.is_open())
+	{
+		std::cerr << "INFO: cannot open file: " << fname.c_str() << std::endl;
+		return;
+	}
+
+	file << a << std::endl << b << std::endl << c << std::endl << C << std::endl;
 }
 
 void PPC::SetPose(Vec3d newEye, Vec3d lookAtPoint, Vec3d upGuidance)
@@ -137,12 +166,7 @@ float PPC::GetFocalLength()
 
 void PPC::ZoomFocalLength(float zoom)
 {
-	Vec3d viewDirection = GetViewDirection();
-	float newFocal = GetFocalLength() * zoom;
-	Vec3d principal = GetPrincipal();
-	Vec3d newc = viewDirection * newFocal - a * principal[0] - b * principal[1];
-
-	c = newc;
+	SetFocalLength(GetFocalLength() * zoom);
 }
 
 void PPC::SetFocalLength(float focal)

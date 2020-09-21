@@ -22,7 +22,7 @@ Scene::Scene()
 	float hfov = 55.0f;
 
 	WorldView * world = new WorldView("SW Frame Buffer", u0, v0, w, h, hfov, (int) views.size());
-	world->GetPPC()->SetFocalLength(547.376f);
+	world->GetPPC()->ZoomFocalLength(.5f);
 	world->showCameraBox = false;
 	world->showCameraScreen = false;
 	world->background.SetFromColor(0xffFF00FF);
@@ -74,6 +74,8 @@ void Scene::DBG()
 {
 
 	PPC * ppc = views[0]->GetPPC();
+
+
 	{
 		Vec3d center = Vec3d::ZEROS;
 
@@ -82,7 +84,7 @@ void Scene::DBG()
 		tmeshes[1].ScaleTo(50);
 
 
-		tmeshes[2].LoadBin("geometry/teapot1k.bin");
+		tmeshes[2].LoadBin("geometry/happy4.bin");
 		tmeshes[2].SetCenter(Vec3d(-100.0f, -50.0f, -100.0f));
 		tmeshes[2].ScaleTo(100);
 
@@ -90,7 +92,7 @@ void Scene::DBG()
 		tmeshes[3].SetCenter(Vec3d(100.0f, -50.0f, -100.0f));
 		tmeshes[3].ScaleTo(50);
 
-		tmeshes[4].LoadBin("geometry/teapot1k.bin");
+		tmeshes[4].LoadBin("geometry/happy4.bin");
 		tmeshes[4].SetCenter(Vec3d(100.0f, -50.0f, 100.0f));
 		tmeshes[4].ScaleTo(100);
 
@@ -98,6 +100,8 @@ void Scene::DBG()
 
 		Vec3d p1 = Vec3d(0, 100, 200);
 		ppc->SetPose(p1, center, Vec3d::YAXIS);
+		ppc->WriteToFile("testCamera.ppc");
+		views[1]->GetPPC()->ReadFromFile("view.txt");
 
 
 		PPC * ppc1 = new PPC(*ppc);
@@ -107,31 +111,36 @@ void Scene::DBG()
 		Render();
 
 		int nSteps = 150;
+		char fname[25] = "";
 
 		for (int i = 0; i < nSteps; i++)
 		{
+			sprintf_s(fname, "frames/frame%d.tiff", i);
+			views[0]->GetFB()->SaveAsTiff(fname);
 			Render();
 			Fl::check();
-			tmeshes[0].Rotate(center, Vec3d::YAXIS, 1.0f);
-			tmeshes[1].Rotate(tmeshes[1].GetCenter(), Vec3d(1,1,1), 2.0f);
-			tmeshes[2].Rotate(tmeshes[2].GetCenter(), Vec3d(1,1,1), 3.0f);
-			tmeshes[3].Rotate(tmeshes[3].GetCenter(), Vec3d(1,1,1), 5.0f);
-			tmeshes[4].Rotate(tmeshes[4].GetCenter(), Vec3d(1,1,1), 5.0f);
+			tmeshes[0].Rotate(center, Vec3d::YAXIS, 3.0f);
+			tmeshes[1].Rotate(center, Vec3d::YAXIS, 2.0f);
+			tmeshes[2].Rotate(center, Vec3d::ZAXIS, 3.0f);
+			tmeshes[3].Rotate(center, Vec3d::XAXIS, 4.0f);
+			tmeshes[4].Rotate(center, Vec3d(1,1,1).Normalized(), 5.0f);
 		}
 
 		for (int i = 0; i < nSteps; i++)
 		{
+			sprintf_s(fname, "frames/frame%d.tiff", i+nSteps);
+			views[0]->GetFB()->SaveAsTiff(fname);
 			Render();
 			Fl::check();
-			tmeshes[0].Rotate(center, Vec3d::YAXIS, 1.0f);
-			tmeshes[1].Rotate(tmeshes[1].GetCenter(), Vec3d(1,1,1), 2.0f);
-			tmeshes[2].Rotate(tmeshes[2].GetCenter(), Vec3d(1,1,1), 3.0f);
-			tmeshes[3].Rotate(tmeshes[3].GetCenter(), Vec3d(1,1,1), 4.0f);
-			tmeshes[4].Rotate(tmeshes[4].GetCenter(), Vec3d(1,1,1), 5.0f);
+			tmeshes[0].Rotate(center, Vec3d::YAXIS, 3.0f);
+			tmeshes[1].Rotate(center, Vec3d::YAXIS, 2.0f);
+			tmeshes[2].Rotate(center, Vec3d::ZAXIS, 3.0f);
+			tmeshes[3].Rotate(center, Vec3d::XAXIS, 4.0f);
+			tmeshes[4].Rotate(center, Vec3d(1,1,1).Normalized(), 5.0f);
 			ppc->Interpolate(ppc1, ppc2, i, nSteps);
 		}
 
-		//return;
+		return;
 	}
 
 	{
