@@ -24,6 +24,12 @@ Vec3d::Vec3d() : vals()
 {
 }
 
+Vec3d Vec3d::FromColor(unsigned int color)
+{
+	Vec3d ret; ret.SetFromColor(color);
+	return ret;
+}
+
 Vec3d Vec3d::Normalized()
 {
 	return (*this) / Length();
@@ -203,4 +209,31 @@ Vec3d Vec3d::Interpolate(Vec3d p0, Vec3d p1, int currStep, int stepCount)
 Vec3d Vec3d::Interpolate(Vec3d p0, Vec3d p1, float t)
 {
 	return p0 + (p1 - p0) * t;
+}
+
+Vec3d Vec3d::EdgeEquation(Vec3d v1, Vec3d v2, Vec3d v3)
+{
+#if 0
+
+	(x - x0) / (x1 - x0) = (y - y0) / (y1 - y0)
+	(x - x0)*(y1 - y0) = (y - y0)*(x1 - x0);
+	x*(y1 - y0) + y * (x0 - x1) + x0(y0 - y1) + y0(x1 - x0) = 0
+	xA + yB + C = 0
+#endif
+	float x0 = v1[0];
+	float x1 = v2[0];
+	float y0 = v1[1];
+	float y1 = v2[1];
+
+	Vec3d edge;
+	edge[0] = y1 - y0; 
+	edge[1] = -x1 + x0; 
+	edge[2] = -(edge[0] * (x0 + x1) + edge[1] * (y0 + y1)) / 2.0f;
+
+	Vec3d v2p(v3); v2p[2] = 1.0f;
+
+	if (edge * v2p < 0.0f) // ret * v2p = Au + Bv + C
+		edge = edge * -1.0f;
+
+	return edge;
 }

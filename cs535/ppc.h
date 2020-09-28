@@ -1,11 +1,17 @@
 #pragma once
 
 
+#include "matrix3d.h"
 #include "vec3d.h"
 
 class WorldView;
 
 class PPC {
+private:
+	Matrix3d invertedCached;
+
+	void CacheInverted();
+
 public:
 	Vec3d a, b, c, C;
 	int w, h;

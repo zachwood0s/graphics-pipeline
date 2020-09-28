@@ -5,6 +5,8 @@
 #include <algorithm>
 
 #include "TMesh.h"
+#include "AABB.h"
+#include "matrix3d.h"
 
 using namespace std;
 
@@ -113,8 +115,7 @@ void TMesh::SetToCube(Vec3d cc, float sideLength, unsigned int color0, unsigned 
 void TMesh::DrawCubeQuadFaces(FrameBuffer *fb, PPC *ppc, unsigned int color) 
 {
 
-	Vec3d c0;
-	c0.SetFromColor(color);
+	Vec3d c0 = Vec3d::FromColor(color);
 	for (int si = 0; si < 4; si++) {
 		fb->Draw3DSegment(verts[si], verts[(si + 1) % 4], ppc, c0, c0);
 		fb->Draw3DSegment(verts[4+si], verts[4 + (si + 1) % 4], ppc, c0, c0);
@@ -141,14 +142,97 @@ void TMesh::DrawWireFrame(WorldView * view, unsigned int color)
 
 void TMesh::DrawInterpolated(WorldView * view, unsigned int color)
 {
-	for (int tri = 0; tri < trisN; tri++) {
-		Vec3d V0 = verts[tris[3 * tri + 0]];
-		Vec3d V1 = verts[tris[3 * tri + 1]];
-		Vec3d V2 = verts[tris[3 * tri + 2]];
-		Vec3d c0 = colors[tris[3 * tri + 0]];
-		Vec3d c1 = colors[tris[3 * tri + 1]];
-		Vec3d c2 = colors[tris[3 * tri + 2]];
-		view->Draw3DTriangle(V0, V1, V2, c0, c1, c2, tri);
+
+	Vec3d *projected = new Vec3d[vertsN];
+	FrameBuffer * fb = view->GetFB();
+
+	// Project all of the verticies
+	for (int i = 0; i < vertsN; i++)
+	{
+		if (!view->GetPPC()->Project(verts[i], projected[i]))
+		{
+			projected[i] = Vec3d(FLT_MAX, FLT_MAX, FLT_MAX);
+		}
+		else
+		{
+			// Clamp the projected points onto a 64x64 sub-grid 
+			// This helps with numerical precision issues
+			projected[i].Clamp(64);
+		}
+	}
+
+	for (int tri = 0; tri < trisN; tri++)
+	{
+		unsigned int vertexIdx[3] = { tris[3 * tri + 0], tris[3 * tri + 1], tris[3 * tri + 2] };
+
+		// Create the point matrix and color matrix for this triangle
+		Matrix3d pointM(projected[vertexIdx[0]], projected[vertexIdx[1]], projected[vertexIdx[2]]);
+		Matrix3d colorM = Matrix3d::FromColumns(colors[vertexIdx[0]], colors[vertexIdx[1]], colors[vertexIdx[2]]);
+
+		if (pointM[0][0] == FLT_MAX || pointM[1][0] == FLT_MAX || pointM[2][0] == FLT_MAX)
+		{
+			continue;
+		}
+
+		// Find the bounding box
+		AABB aabb({ pointM[0], pointM[1], pointM[2] });
+		aabb.ClipView(fb->w, fb->h);
+		Rect bounds = aabb.GetPixelRect();
+			
+		// Compute the edge equations and interpolation
+		Matrix3d edgeEqns = Matrix3d::EdgeEquations(pointM);
+		Matrix3d screenSpaceInterp = Matrix3d::ScreenSpaceInterp(pointM);
+		Vec3d zvals = pointM.GetColumn(2);
+
+		// same as SSIM * colors[i] for each row
+		Matrix3d colorCoefs = (screenSpaceInterp * colorM.Transposed()).Transposed();
+		Vec3d zCoefs = screenSpaceInterp * zvals;
+
+		float minZ = zvals.Min();
+		float maxZ = zvals.Max(); 
+		Vec3d minColors(colorM[0].Min(), colorM[1].Min(), colorM[2].Min());
+		Vec3d maxColors(colorM[0].Max(), colorM[1].Max(), colorM[2].Max());
+
+		// Grab the coefficients individuall so that interp can be done incrementally
+		auto[a, b, c] = edgeEqns.Columns();
+
+		// This is the same as t = a * left + b * top + c;
+		Vec3d t = edgeEqns * Vec3d(bounds.left + .5f, bounds.top + .5f, 1);
+
+		for (int currPixY = bounds.top; currPixY <= bounds.bottom; currPixY++, t = t + b)
+		{
+			int exit_early = 0; //Used for when we exit the triangle, we know we can continue onto next line because triangles are convex;
+			Vec3d e = t;
+
+			for (int currPixX = bounds.left; currPixX <= bounds.right; currPixX++, e = e + a)
+			{
+				if (e[0] >= 0 && e[1] >= 0 && e[2] >= 0)
+				{
+					Vec3d p = Vec3d((float) currPixX, (float) currPixY, 1);
+
+					// Clamp the z value so that its valid for this triangle.
+					float currZ = clamp(zCoefs * p, minZ, maxZ);
+					if (fb->Farther((int) p[0], (int) p[1], currZ))
+					{
+						continue;
+					}
+					Vec3d color = colorCoefs * p;
+
+					// Clamp each color to somewhere in their starting range.
+					// This handles errors for colors outside the given color range.
+					color.Clamp(minColors, maxColors);
+
+					fb->Set(currPixX, currPixY, color.GetColor(), tri);
+					exit_early++;
+				}
+				else if (exit_early != 0)
+				{
+					break; // Continue onto next line
+				}
+
+			}
+		}
+
 	}
 }
 

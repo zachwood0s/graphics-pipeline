@@ -17,6 +17,15 @@ Matrix3d::Matrix3d() : rows()
 {
 }
 
+Matrix3d Matrix3d::FromColumns(Vec3d c1, Vec3d c2, Vec3d c3)
+{
+	Matrix3d m;
+	m.SetColumn(0, c1);
+	m.SetColumn(1, c2);
+	m.SetColumn(2, c3);
+	return m;
+}
+
 const Vec3d& Matrix3d::operator[](const int& n) const
 {
 	return rows[n];
@@ -55,6 +64,11 @@ Vec3d Matrix3d::operator*(const Vec3d& b)
 	float y = a[1] * b;
 	float z = a[2] * b;
 	return Vec3d(x, y, z);
+}
+
+std::tuple<Vec3d, Vec3d, Vec3d> Matrix3d::Columns() const
+{
+	return { GetColumn(0), GetColumn(1), GetColumn(2) };
 }
 
 Vec3d Matrix3d::GetColumn(int column_idx) const
@@ -125,4 +139,33 @@ void Matrix3d::SetRotateZ(const float thetaDegrees)
 	rows[0] = Vec3d(cos(theta), -sin(theta), 0);
 	rows[1] = Vec3d(sin(theta), cos(theta), 0);
 	rows[2] = Vec3d::ZAXIS;
+}
+
+Matrix3d Matrix3d::EdgeEquations(Matrix3d points)
+{
+	return EdgeEquations(points[0], points[1], points[2]);
+}
+
+Matrix3d Matrix3d::EdgeEquations(Vec3d v1, Vec3d v2, Vec3d v3)
+{
+	Vec3d pvs[3]{ v1, v2, v3 };
+	Matrix3d ret;
+
+	for (int ei = 0; ei < 3; ei++)
+	{
+		ret[ei] = Vec3d::EdgeEquation(pvs[ei], pvs[(ei + 1) % 3], pvs[(ei + 2) % 3]);
+	}
+	return ret;
+}
+
+Matrix3d Matrix3d::ScreenSpaceInterp(Matrix3d points)
+{
+	return ScreenSpaceInterp(points[0], points[1], points[2]);
+}
+
+Matrix3d Matrix3d::ScreenSpaceInterp(Vec3d v1, Vec3d v2, Vec3d v3)
+{
+	Matrix3d ret(v1, v2, v3);
+	ret.SetColumn(2, Vec3d::ONES);
+	return ret.Inverted();
 }

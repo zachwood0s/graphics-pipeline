@@ -1,5 +1,6 @@
 #pragma once
 #include <iostream>
+#include <tuple>
 #include "vec3d.h"
 
 class Matrix3d
@@ -8,6 +9,8 @@ private:
 	Vec3d rows[3];
 
 public:
+	static Matrix3d FromColumns(Vec3d c1, Vec3d c2, Vec3d c3);
+
 	Matrix3d(Vec3d row1, Vec3d row2, Vec3d row3);
 	Matrix3d(float vals[3][3]);
 	Matrix3d();
@@ -20,6 +23,8 @@ public:
 
 	friend std::ostream& operator<<(std::ostream &output, const Matrix3d &m);
 	friend std::istream& operator>>(std::istream &input, Matrix3d &m);
+
+	std::tuple<Vec3d, Vec3d, Vec3d> Columns() const;
 
 	Vec3d GetColumn(int column_idx) const;
 	void SetColumn(int column_idx, const Vec3d value);
@@ -54,5 +59,10 @@ public:
 	/// <param name="theta">The rotation amount in degrees</param>
 	void SetRotateZ(const float theta);
 
+
+	static Matrix3d ScreenSpaceInterp(Matrix3d points);
+	static Matrix3d ScreenSpaceInterp(Vec3d v1, Vec3d v2, Vec3d v3);
+	static Matrix3d EdgeEquations(Vec3d v1, Vec3d v2, Vec3d v3);
+	static Matrix3d EdgeEquations(Matrix3d points);
 };
 

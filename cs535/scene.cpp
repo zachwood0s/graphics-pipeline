@@ -100,8 +100,6 @@ void Scene::DBG()
 
 		Vec3d p1 = Vec3d(0, 100, 200);
 		ppc->SetPose(p1, center, Vec3d::YAXIS);
-		ppc->WriteToFile("testCamera.ppc");
-		views[1]->GetPPC()->ReadFromFile("view.txt");
 
 
 		PPC * ppc1 = new PPC(*ppc);
@@ -111,12 +109,9 @@ void Scene::DBG()
 		Render();
 
 		int nSteps = 150;
-		char fname[25] = "";
 
 		for (int i = 0; i < nSteps; i++)
 		{
-			sprintf_s(fname, "frames/frame%d.tiff", i);
-			views[0]->GetFB()->SaveAsTiff(fname);
 			Render();
 			Fl::check();
 			tmeshes[0].Rotate(center, Vec3d::YAXIS, 3.0f);
@@ -128,8 +123,6 @@ void Scene::DBG()
 
 		for (int i = 0; i < nSteps; i++)
 		{
-			sprintf_s(fname, "frames/frame%d.tiff", i+nSteps);
-			views[0]->GetFB()->SaveAsTiff(fname);
 			Render();
 			Fl::check();
 			tmeshes[0].Rotate(center, Vec3d::YAXIS, 3.0f);

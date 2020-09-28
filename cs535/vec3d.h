@@ -19,6 +19,8 @@ public:
 	Vec3d(float vals[3]);
 	Vec3d();
 
+	static Vec3d FromColor(unsigned int color);
+
 	Vec3d Normalized();
 	float Length();
 	Vec3d Rotate(const Vec3d origin, const Vec3d direction, const float theta);
@@ -46,6 +48,8 @@ public:
 
 	static Vec3d Interpolate(Vec3d p0, Vec3d p1, int currStep, int stepCount);
 	static Vec3d Interpolate(Vec3d p0, Vec3d p1, float t);
+
+	static Vec3d EdgeEquation(Vec3d v1, Vec3d v2, Vec3d other);
 
 };
 

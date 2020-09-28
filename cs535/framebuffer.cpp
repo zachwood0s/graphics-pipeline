@@ -330,6 +330,7 @@ void FrameBuffer::Draw2DTriangle(Vec3d p1, Vec3d p2, Vec3d p3, Vec3d c1, Vec3d c
 	Vec3d rCoefs = GetColorCoeffs(points, reds);
 	Vec3d gCoefs = GetColorCoeffs(points, greens);
 	Vec3d bCoefs = GetColorCoeffs(points, blues);
+	Matrix3d colorCoefs = Matrix3d(rCoefs, gCoefs, bCoefs);
 	Vec3d zCoefs = GetColorCoeffs(points, zvals);
 	float minZ = zvals.Min();
 	float maxZ = zvals.Max(); 
@@ -375,7 +376,7 @@ void FrameBuffer::Draw2DTriangle(Vec3d p1, Vec3d p2, Vec3d p3, Vec3d c1, Vec3d c
 				{
 					continue;
 				}
-				Vec3d color = Matrix3d(rCoefs, gCoefs, bCoefs) * p;
+				Vec3d color = colorCoefs * p;
 
 				// Clamp each color to somewhere in their starting range.
 				// This handles errors for colors outside the given color range.

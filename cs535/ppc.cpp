@@ -60,6 +60,8 @@ void PPC::SetPose(Vec3d newEye, Vec3d lookAtPoint, Vec3d upGuidance)
 	b = newb;
 	c = newc;
 	C = newEye;
+
+	CacheInverted();
 }
 
 void PPC::Interpolate(PPC* ppc0, PPC* ppc1, int currStep, int stepCount)
@@ -84,11 +86,7 @@ void PPC::Interpolate(PPC* ppc0, PPC* ppc1, int currStep, int stepCount)
 
 int PPC::Project(Vec3d P, Vec3d &p) 
 {
-	Matrix3d M;
-	M.SetColumn(0, a);
-	M.SetColumn(1, b);
-	M.SetColumn(2, c);
-	Vec3d q = M.Inverted()*(P - C);
+	Vec3d q = invertedCached*(P - C);
 	float w = q[2];
 	if (w <= 0.0f)
 		return 0;
@@ -138,6 +136,8 @@ void PPC::PanLeftRight(float rstep)
 	Vec3d bDir = b.Normalized() * -1.0f;
 	a = a.Rotate(bDir, rstep);
 	c = c.Rotate(bDir, rstep);
+
+	CacheInverted();
 }
 
 void PPC::TiltUpDown(float rstep)
@@ -145,6 +145,8 @@ void PPC::TiltUpDown(float rstep)
 	Vec3d aDir = a.Normalized();
 	b = b.Rotate(aDir, rstep);
 	c = c.Rotate(aDir, rstep);
+
+	CacheInverted();
 }
 
 void PPC::Roll(float rstep)
@@ -153,6 +155,8 @@ void PPC::Roll(float rstep)
 	a = a.Rotate(vdDir, rstep);
 	b = b.Rotate(vdDir, rstep);
 	c = c.Rotate(vdDir, rstep);
+
+	CacheInverted();
 }
 
 #pragma endregion
@@ -191,6 +195,15 @@ Vec3d PPC::GetViewDirection()
 	return (a ^ b).Normalized();
 }
 
+void PPC::CacheInverted()
+{
+	Matrix3d M;
+	M.SetColumn(0, a);
+	M.SetColumn(1, b);
+	M.SetColumn(2, c);
+	invertedCached = M.Inverted();
+}
+
 #pragma endregion
 
 #pragma region Visualization
@@ -226,7 +239,7 @@ void PPC::Visualize(WorldView *world, WorldView *cameraWorld, float vf)
 
 			float _w = focal / vf;
 			Vec3d pix3d = UnProject(Vec3d(0.5f + (float)u, 0.5f + (float)v, _w));
-			Vec3d color; color.SetFromColor(cameraFb->Get(u, v));
+			Vec3d color = Vec3d::FromColor(cameraFb->Get(u, v));
 			world->Draw3DPoint(pix3d, 1, color);
 		}
 	}
