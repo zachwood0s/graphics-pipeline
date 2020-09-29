@@ -16,8 +16,18 @@ public:
 	AABB(Vec3d firstPoint);
 	AABB(std::initializer_list<Vec3d> a);
 
+	template<typename... Args>
+	AABB(Vec3d first, Args... rest) : AABB({ first, rest... })
+	{
+	}
+
+	static AABB Clipped(int w, int h, std::initializer_list<Vec3d> points);
+
 	void AddPoint(Vec3d point);
 	void ClipView(int w, int h);
-	Rect GetPixelRect();
+
+	Rect GetPixelRect() const;
+	Vec3d Min() const;
+	Vec3d Max() const;
 };
 

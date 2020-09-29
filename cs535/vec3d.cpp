@@ -30,14 +30,14 @@ Vec3d Vec3d::FromColor(unsigned int color)
 	return ret;
 }
 
-Vec3d Vec3d::Normalized()
+Vec3d Vec3d::Normalized() const
 {
 	return (*this) / Length();
 }
 
-float Vec3d::Length()
+float Vec3d::Length() const
 {
-	Vec3d& a = *this;
+	const Vec3d& a = *this;
 	return sqrtf(a * a);
 }
 
@@ -62,16 +62,21 @@ void Vec3d::Clamp(int nearest)
 	v[2] = std::floorf(v[2] * nearest + .5f) / nearest;
 }
 
-float Vec3d::Min()
+float Vec3d::Min() const
 {
-	Vec3d &v = *this;
+	const Vec3d &v = *this;
 	return std::min({ v[0], v[1], v[2] });
 }
 
-float Vec3d::Max()
+float Vec3d::Max() const
 {
-	Vec3d &v = *this;
+	const Vec3d &v = *this;
 	return std::max({ v[0], v[1], v[2] });
+}
+
+std::tuple<float, float> Vec3d::Bounds() const
+{
+	return { Min(), Max() };
 }
 
 const float& Vec3d::operator[](const int& n) const
@@ -84,41 +89,41 @@ float& Vec3d::operator[](const int& n)
 	return vals[n];
 }
 
-Vec3d Vec3d::operator+(const Vec3d& b)
+Vec3d Vec3d::operator+(const Vec3d& b) const
 {
-	Vec3d &a = *this;
+	const Vec3d &a = *this;
 	return Vec3d(a[0] + b[0], a[1] + b[1], a[2] + b[2]);
 }
 
-Vec3d Vec3d::operator-(const Vec3d& b)
+Vec3d Vec3d::operator-(const Vec3d& b) const
 {
-	Vec3d &a = *this;
+	const Vec3d &a = *this;
 	return Vec3d(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 }
 
-float Vec3d::operator*(const Vec3d& b)
+float Vec3d::operator*(const Vec3d& b) const
 {
-	Vec3d &a = *this;
+	const Vec3d &a = *this;
 	return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 }
 
-Vec3d Vec3d::operator*(const float n)
+Vec3d Vec3d::operator*(const float n) const
 {
-	Vec3d &a = *this;
+	const Vec3d &a = *this;
 	return Vec3d(a[0] * n, a[1] * n, a[2] * n);
 }
 
-Vec3d Vec3d::operator^(const Vec3d& b)
+Vec3d Vec3d::operator^(const Vec3d& b) const
 {
-	Vec3d &a = *this;
+	const Vec3d &a = *this;
 	return Vec3d(a[1]*b[2] - a[2] * b[1],
 				 a[2]*b[0] - a[0] * b[2],
 				 a[0]*b[1] - a[1] * b[0]);
 }
 
-Vec3d Vec3d::operator/(const float n)
+Vec3d Vec3d::operator/(const float n) const
 {
-	Vec3d &a = *this;
+	const Vec3d &a = *this;
 	return Vec3d(a[0] / n, a[1] / n, a[2] / n);
 }
 
@@ -134,7 +139,7 @@ std::istream& operator>>(std::istream &input, Vec3d &v)
 	return input;
 }
 
-Vec3d Vec3d::Rotate(const Vec3d origin, const Vec3d direction, const float theta)
+Vec3d Vec3d::Rotate(const Vec3d origin, const Vec3d direction, const float theta) const
 {
 	// Make new coordinate system
 	Vec3d adir = direction;
@@ -153,7 +158,7 @@ Vec3d Vec3d::Rotate(const Vec3d origin, const Vec3d direction, const float theta
 	Vec3d c = (a ^ b).Normalized();
 
 	// Move into new coordinate system
-	Vec3d &P = *this;
+	const Vec3d &P = *this;
 	Matrix3d coord_rotation = Matrix3d(adir, b, c);
 	Vec3d p_prime = coord_rotation * (P - origin);
 	Matrix3d rotation_matrix = Matrix3d();
@@ -167,7 +172,7 @@ Vec3d Vec3d::Rotate(const Vec3d origin, const Vec3d direction, const float theta
 	return p_transformed;
 }
 
-Vec3d Vec3d::Rotate(const Vec3d direction, const float theta)
+Vec3d Vec3d::Rotate(const Vec3d direction, const float theta) const
 {
 	return Rotate(Vec3d::ZEROS, direction, theta);
 }
@@ -188,10 +193,10 @@ void Vec3d::SetFromColor(unsigned int color)
 	v[2] = (float)(rgb[2]) / 255.0f;
 }
 
-unsigned int Vec3d::GetColor() 
+unsigned int Vec3d::GetColor() const
 {
 	unsigned int ret;
-	Vec3d &v = *this;
+	const Vec3d &v = *this;
 	unsigned char rgb[3];
 	rgb[0] = (unsigned char)(255.0f * v[0]);
 	rgb[1] = (unsigned char)(255.0f * v[1]);

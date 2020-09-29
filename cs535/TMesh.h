@@ -20,7 +20,8 @@ public:
 	void Allocate(int _vertsN, int _trisN);
 	void DrawCubeQuadFaces(FrameBuffer *fb, PPC *ppc, unsigned int color);
 	void DrawWireFrame(WorldView * world, unsigned int color);
-	void DrawInterpolated(WorldView * world, unsigned int color);
+	void DrawInterpolated(WorldView * world);
+	void DrawModelSpaceInterpolated(WorldView *world);
 	void LoadBin(const char *fname);
 	Vec3d GetCenter();
 	void SetCenter(Vec3d center);
@@ -28,4 +29,6 @@ public:
 	void Rotate(Vec3d axisOrigin, Vec3d axisDir, float theta);
 	void GetAABB(Vec3d &smallest, Vec3d &largest);
 	void ScaleTo(float size);
+
+	Vec3d* ProjectAll(WorldView* view) const;
 };

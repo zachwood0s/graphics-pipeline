@@ -3,6 +3,8 @@
 #include <tuple>
 #include "vec3d.h"
 
+class PPC;
+
 class Matrix3d
 {
 private:
@@ -17,9 +19,9 @@ public:
 
 	const Vec3d& operator[](const int& n) const;
 	Vec3d& operator[](const int& n);
-	Matrix3d operator*(const float& n);
-	Matrix3d operator*(const Matrix3d& b);
-	Vec3d operator*(const Vec3d& b);
+	Matrix3d operator*(const float& n) const;
+	Matrix3d operator*(const Matrix3d& b) const;
+	Vec3d operator*(const Vec3d& b) const;
 
 	friend std::ostream& operator<<(std::ostream &output, const Matrix3d &m);
 	friend std::istream& operator>>(std::istream &input, Matrix3d &m);
@@ -33,13 +35,13 @@ public:
 	/// Returns the iverted version of this matrix
 	/// </summary>
 	/// <returns>The inverted version of this matrix</returns>
-	Matrix3d Inverted();
+	Matrix3d Inverted() const;
 
 	/// <summary>
 	/// Returns the transposed version of this matrix
 	/// </summary>
 	/// <returns>The transposed version of this matrix</returns>
-	Matrix3d Transposed();
+	Matrix3d Transposed() const;
 
 	/// <summary>
 	/// Sets this matrix as a rotation matrix about the x-axis. 
@@ -62,6 +64,8 @@ public:
 
 	static Matrix3d ScreenSpaceInterp(Matrix3d points);
 	static Matrix3d ScreenSpaceInterp(Vec3d v1, Vec3d v2, Vec3d v3);
+	static Matrix3d ModelSpaceInterp(Matrix3d points, PPC *ppc);
+	static Matrix3d ModelSpaceInterp(Vec3d v1, Vec3d v2, Vec3d v3, PPC *ppc);
 	static Matrix3d EdgeEquations(Vec3d v1, Vec3d v2, Vec3d v3);
 	static Matrix3d EdgeEquations(Matrix3d points);
 };

@@ -140,26 +140,11 @@ void TMesh::DrawWireFrame(WorldView * view, unsigned int color)
 
 }
 
-void TMesh::DrawInterpolated(WorldView * view, unsigned int color)
+void TMesh::DrawInterpolated(WorldView * view)
 {
 
-	Vec3d *projected = new Vec3d[vertsN];
+	Vec3d *projected = ProjectAll(view);
 	FrameBuffer * fb = view->GetFB();
-
-	// Project all of the verticies
-	for (int i = 0; i < vertsN; i++)
-	{
-		if (!view->GetPPC()->Project(verts[i], projected[i]))
-		{
-			projected[i] = Vec3d(FLT_MAX, FLT_MAX, FLT_MAX);
-		}
-		else
-		{
-			// Clamp the projected points onto a 64x64 sub-grid 
-			// This helps with numerical precision issues
-			projected[i].Clamp(64);
-		}
-	}
 
 	for (int tri = 0; tri < trisN; tri++)
 	{
@@ -234,6 +219,91 @@ void TMesh::DrawInterpolated(WorldView * view, unsigned int color)
 		}
 
 	}
+
+	delete[] projected;
+}
+
+void TMesh::DrawModelSpaceInterpolated(WorldView *view)
+{
+	Vec3d *projected = ProjectAll(view);
+	FrameBuffer * fb = view->GetFB();
+
+	for (int tri = 0; tri < trisN; tri++)
+	{
+		unsigned int vertexIdx[3] = { tris[3 * tri + 0], tris[3 * tri + 1], tris[3 * tri + 2] };
+
+		// Create the point matrix and color matrix for this triangle
+		Matrix3d pointM(projected[vertexIdx[0]], projected[vertexIdx[1]], projected[vertexIdx[2]]);
+		Matrix3d colorM = Matrix3d::FromColumns(colors[vertexIdx[0]], colors[vertexIdx[1]], colors[vertexIdx[2]]);
+
+		if (pointM[0][0] == FLT_MAX || pointM[1][0] == FLT_MAX || pointM[2][0] == FLT_MAX)
+		{
+			continue;
+		}
+
+		// Find the bounding box
+		Rect bounds = AABB::Clipped(fb->w, fb->h, { pointM[0], pointM[1], pointM[2] }).GetPixelRect();
+			
+		// Compute the edge equations and interpolation
+		Matrix3d edgeEqns = Matrix3d::EdgeEquations(pointM);
+		Matrix3d modelSpaceInterp = Matrix3d::ModelSpaceInterp(pointM, view->GetPPC());
+		Vec3d denomParam = modelSpaceInterp * Vec3d::ONES;
+		Vec3d zVals = pointM.GetColumn(2);
+
+		// same as MSIM * colors[i] for each row
+		Matrix3d colorCoefs = (modelSpaceInterp * colorM.Transposed()).Transposed();
+		Vec3d zCoefs = modelSpaceInterp * zVals;
+
+		// Grab the min and max values for the for the interpolation parameters
+		auto[minZ, maxZ] = zVals.Bounds();
+		AABB colorBounds = std::make_from_tuple<AABB>(colorM.Columns());
+
+		// Grab the coefficients individual so that interp can be done incrementally
+		auto[a, b, c] = edgeEqns.Columns();
+
+		// This is the same as t = a * left + b * top + c;
+		Vec3d t = edgeEqns * Vec3d(bounds.left + .5f, bounds.top + .5f, 1);
+
+		// Draw the triangle
+		for (int currPixY = bounds.top; currPixY <= bounds.bottom; currPixY++, t = t + b)
+		{
+			int exit_early = 0; //Used for when we exit the triangle, we know we can continue onto next line because triangles are convex;
+			Vec3d e = t;
+
+			for (int currPixX = bounds.left; currPixX <= bounds.right; currPixX++, e = e + a)
+			{
+				if (e[0] >= 0 && e[1] >= 0 && e[2] >= 0)
+				{
+					Vec3d p = Vec3d((float) currPixX, (float) currPixY, 1);
+					float denom = 1 / (denomParam * p);
+
+					// Clamp the z value so that its valid for this triangle.
+					float currZ = zCoefs * p * denom;//clamp(zCoefs * p * denom, minZ, maxZ);
+					if (fb->Farther((int) p[0], (int) p[1], currZ))
+					{
+						continue;
+					}
+
+					Vec3d color = colorCoefs * p * denom;
+
+					// Clamp each color to somewhere in their starting range.
+					// This handles errors for colors outside the given color range.
+					//color.Clamp(colorBounds.Min(), colorBounds.Max());
+
+					fb->Set(currPixX, currPixY, color.GetColor(), tri);
+					exit_early++;
+				}
+				else if (exit_early != 0)
+				{
+					break; // Continue onto next line
+				}
+
+			}
+		}
+
+	}
+
+	delete[] projected;
 }
 
 void TMesh::LoadBin(const char *fname) 
@@ -378,4 +448,26 @@ void TMesh::ScaleTo(float size)
 
 	// Move back to original center
 	SetCenter(currCenter);
+}
+
+Vec3d* TMesh::ProjectAll(WorldView* view) const
+{
+	Vec3d *projected = new Vec3d[vertsN];
+
+	// Project all of the verticies
+	for (int i = 0; i < vertsN; i++)
+	{
+		if (!view->GetPPC()->Project(verts[i], projected[i]))
+		{
+			projected[i] = Vec3d(FLT_MAX, FLT_MAX, FLT_MAX);
+		}
+		else
+		{
+			// Clamp the projected points onto a 64x64 sub-grid 
+			// This helps with numerical precision issues
+			projected[i].Clamp(64);
+		}
+	}
+
+	return projected;
 }

@@ -2,6 +2,7 @@
 #include <math.h>
 
 #include "matrix3d.h"
+#include "ppc.h"
 
 
 
@@ -31,25 +32,26 @@ const Vec3d& Matrix3d::operator[](const int& n) const
 	return rows[n];
 }
 
-Vec3d& Matrix3d::operator[](const int& n)
+Vec3d& Matrix3d::operator[](const int& n) 
 {
 	return rows[n];
 }
 
-Matrix3d Matrix3d::operator*(const float& n)
+Matrix3d Matrix3d::operator*(const float& n) const
 {
-	Vec3d x = rows[0] * n;
-	Vec3d y = rows[1] * n;
-	Vec3d z = rows[2] * n;
+	const Matrix3d& a = *this;
+	Vec3d x = a[0] * n;
+	Vec3d y = a[1] * n;
+	Vec3d z = a[2] * n;
 	return Matrix3d(x, y, z);
 }
 
-Matrix3d Matrix3d::operator*(const Matrix3d& b)
+Matrix3d Matrix3d::operator*(const Matrix3d& b) const
 {
 
-	Matrix3d& a = *this;
+	const Matrix3d& a = *this;
 	Matrix3d res;
-
+	
 	res.SetColumn(0, a * b.GetColumn(0));
 	res.SetColumn(1, a * b.GetColumn(1));
 	res.SetColumn(2, a * b.GetColumn(2));
@@ -57,9 +59,9 @@ Matrix3d Matrix3d::operator*(const Matrix3d& b)
 	return res;
 }
 
-Vec3d Matrix3d::operator*(const Vec3d& b)
+Vec3d Matrix3d::operator*(const Vec3d& b) const
 {
-	Matrix3d& a = *this;
+	const Matrix3d& a = *this;
 	float x = a[0] * b;
 	float y = a[1] * b;
 	float z = a[2] * b;
@@ -85,7 +87,7 @@ void Matrix3d::SetColumn(int column_idx, const Vec3d value)
 	a[2][column_idx] = value[2];
 }
 
-Matrix3d Matrix3d::Inverted()
+Matrix3d Matrix3d::Inverted() const
 {
 
 	Matrix3d ret;
@@ -100,7 +102,7 @@ Matrix3d Matrix3d::Inverted()
 	return ret;
 }
 
-Matrix3d Matrix3d::Transposed()
+Matrix3d Matrix3d::Transposed() const
 {
 	return Matrix3d(GetColumn(0), GetColumn(1), GetColumn(2));
 }
@@ -169,3 +171,16 @@ Matrix3d Matrix3d::ScreenSpaceInterp(Vec3d v1, Vec3d v2, Vec3d v3)
 	ret.SetColumn(2, Vec3d::ONES);
 	return ret.Inverted();
 }
+
+Matrix3d Matrix3d::ModelSpaceInterp(Matrix3d points, PPC *ppc)
+{
+	return ModelSpaceInterp(points[0], points[1], points[2], ppc);
+}
+
+Matrix3d Matrix3d::ModelSpaceInterp(Vec3d v1, Vec3d v2, Vec3d v3, PPC *ppc)
+{
+	Matrix3d translatedPoints = Matrix3d::FromColumns(v1 - ppc->C, v2 - ppc->C, v3 - ppc->C);
+	Matrix3d camera = Matrix3d::FromColumns(ppc->a, ppc->b, ppc->c);
+	return translatedPoints.Inverted() * camera;
+}
+

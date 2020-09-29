@@ -21,34 +21,34 @@ public:
 
 	static Vec3d FromColor(unsigned int color);
 
-	Vec3d Normalized();
-	float Length();
-	Vec3d Rotate(const Vec3d origin, const Vec3d direction, const float theta);
-	Vec3d Rotate(const Vec3d direction, const float theta);
+	Vec3d Normalized() const;
+	float Length() const;
+	Vec3d Rotate(const Vec3d origin, const Vec3d direction, const float theta) const;
+	Vec3d Rotate(const Vec3d direction, const float theta) const;
 	void Set(const Vec3d other);
 	void Clamp(int nearest);
 	void Clamp(Vec3d minVals, Vec3d maxVals);
-	float Min();
-	float Max();
+	float Min() const;
+	float Max() const;
+	std::tuple<float, float> Bounds() const;
 
 	const float& operator[](const int& n) const;
 	float& operator[](const int& n);
-	Vec3d operator+(const Vec3d&);
-	Vec3d operator-(const Vec3d&);
-	float operator*(const Vec3d&);
-	Vec3d operator*(const float);
-	Vec3d operator^(const Vec3d&);
-	Vec3d operator/(const float);
+	Vec3d operator+(const Vec3d&) const;
+	Vec3d operator-(const Vec3d&) const;
+	float operator*(const Vec3d&) const;
+	Vec3d operator*(const float) const;
+	Vec3d operator^(const Vec3d&) const;
+	Vec3d operator/(const float) const;
 
 	friend std::ostream& operator<<(std::ostream &output, const Vec3d &v);
 	friend std::istream& operator>>(std::istream &input, Vec3d &v);
 
 	void SetFromColor(unsigned int color);
-	unsigned int GetColor();
+	unsigned int GetColor() const;
 
 	static Vec3d Interpolate(Vec3d p0, Vec3d p1, int currStep, int stepCount);
 	static Vec3d Interpolate(Vec3d p0, Vec3d p1, float t);
-
 	static Vec3d EdgeEquation(Vec3d v1, Vec3d v2, Vec3d other);
 
 };

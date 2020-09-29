@@ -21,6 +21,8 @@ WorldView::~WorldView()
 {
 	delete fb;
 	delete ppc;
+	fb = nullptr;
+	ppc = nullptr;
 }
 
 void WorldView::Render(Scene & scene)
@@ -32,7 +34,7 @@ void WorldView::Render(Scene & scene)
 	{
 		if (!scene.tmeshes[tmi].onFlag)
 			continue;
-		scene.tmeshes[tmi].DrawInterpolated(this, 0xFF00FF00);
+		scene.tmeshes[tmi].DrawModelSpaceInterpolated(this);
 	}
 
 	if (showCameraBox || showCameraScreen)

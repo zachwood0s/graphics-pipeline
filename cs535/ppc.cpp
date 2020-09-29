@@ -180,6 +180,7 @@ void PPC::SetFocalLength(float focal)
 	Vec3d newc = viewDirection * focal - a * principal[0] - b * principal[1];
 
 	c = newc;
+	CacheInverted();
 }
 
 Vec3d PPC::GetPrincipal()

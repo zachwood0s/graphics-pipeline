@@ -17,6 +17,13 @@ AABB::AABB(std::initializer_list<Vec3d> list) : AABB(*list.begin())
 	}
 }
 
+AABB AABB::Clipped(int w, int h, std::initializer_list<Vec3d> list)
+{
+	AABB aabb(list);
+	aabb.ClipView(w, h);
+	return aabb;
+}
+
 void AABB::AddPoint(Vec3d point)
 {
 	for (int i = 0; i < 3; i++)
@@ -30,13 +37,13 @@ void AABB::AddPoint(Vec3d point)
 
 void AABB::ClipView(int w, int h)
 {
-	corners[0][0] = clamp(corners[0][0], 0, w); 
-	corners[0][1] = clamp(corners[0][1], 0, h); 
-	corners[1][0] = clamp(corners[1][0], 0, w); 
-	corners[1][1] = clamp(corners[1][1], 0, h); 
+	corners[0][0] = clamp(corners[0][0], 0.0f, (float) w); 
+	corners[0][1] = clamp(corners[0][1], 0.0f, (float) h); 
+	corners[1][0] = clamp(corners[1][0], 0.0f, (float) w); 
+	corners[1][1] = clamp(corners[1][1], 0.0f, (float) h); 
 }
 
-Rect AABB::GetPixelRect()
+Rect AABB::GetPixelRect() const
 {
 	Rect r;
 	r.left = (int)(corners[0][0] + .5f);
@@ -44,4 +51,14 @@ Rect AABB::GetPixelRect()
 	r.top = (int)(corners[0][1] + .5f);
 	r.bottom = (int)(corners[1][1] - .5f);
 	return r;
+}
+
+Vec3d AABB::Min() const
+{
+	return corners[0];
+}
+
+Vec3d AABB::Max() const
+{
+	return corners[1];
 }

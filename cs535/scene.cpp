@@ -40,7 +40,7 @@ Scene::Scene()
 	tmeshesN = 5;
 	tmeshes = new TMesh[tmeshesN];
 
-	tmeshes[0].LoadBin("geometry/teapot57k.bin");
+	tmeshes[0].LoadBin("geometry/teapot1k.bin");
 	tmeshes[0].SetCenter(Vec3d::ZEROS);
 	tmeshes[0].ScaleTo(200);
 	tmeshes[0].Rotate(Vec3d::ZEROS, Vec3d::YAXIS, 90);
@@ -59,7 +59,8 @@ Scene::~Scene()
 		delete world;
 	}
 
-	delete tmeshes;
+	delete[] tmeshes;
+	tmeshes = nullptr;
 }
 
 void Scene::Render() 
