@@ -4,14 +4,20 @@
 
 
 WorldView::WorldView(std::string name, int windowX, int windowY, int windowW, int windowH, float hFov, int _id)
-	:id(_id), showCameraBox(true), showCameraScreen(true), cameraVf(20.0f)
+	: WorldView(windowW, windowH, hFov, _id)
 {
-	fb = new FrameBuffer(windowX, windowY, windowW, windowH, name.c_str());
-	ppc = new PPC(hFov, windowW, windowH);
+	window = new FLWindow(windowX, windowY, fb, name.c_str());
 
-	fb->show();
-	fb->redraw();
+	window->show();
+	window->redraw();
+}
 
+WorldView::WorldView(int bufferW, int bufferH, float hFov, int _id) 
+	:id(_id), showCameraBox(true), showCameraScreen(true), cameraVf(20.0f), window(nullptr)
+{
+	fb = new FrameBuffer(bufferW, bufferH);
+	ppc = new PPC(hFov, bufferW, bufferH);
+	
 	colorCameraBox.SetFromColor(0xFFFF0000);
 	colorCameraPoint.SetFromColor(0xFF0000FF);
 	background.SetFromColor(0xFF000000);
@@ -21,8 +27,10 @@ WorldView::~WorldView()
 {
 	delete fb;
 	delete ppc;
+	delete window;
 	fb = nullptr;
 	ppc = nullptr;
+	window = nullptr;
 }
 
 void WorldView::Render(Scene & scene)
@@ -34,7 +42,7 @@ void WorldView::Render(Scene & scene)
 	{
 		if (!scene.tmeshes[tmi].onFlag)
 			continue;
-		scene.tmeshes[tmi].DrawModelSpaceInterpolated(this);
+		scene.tmeshes[tmi].DrawInterpolated(this);
 	}
 
 	if (showCameraBox || showCameraScreen)
@@ -58,7 +66,13 @@ void WorldView::Render(Scene & scene)
 		}
 	}
 
-	fb->redraw();
+	// If a window is associated with this world, redraw it
+	if (window)
+	{
+		window->redraw();
+	}
+
+
 }
 
 PPC* WorldView::GetPPC()

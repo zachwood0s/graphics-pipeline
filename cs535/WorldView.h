@@ -2,6 +2,7 @@
 
 #include "ppc.h"
 #include "framebuffer.h"
+#include "FLWindow.h"
 
 class Scene;
 
@@ -10,6 +11,7 @@ class WorldView
 private:
 	PPC *ppc;
 	FrameBuffer *fb;
+	FLWindow *window;
 	int id;
 
 public:
@@ -20,7 +22,15 @@ public:
 	Vec3d colorCameraPoint;
 	Vec3d background;
 
+	/// <summary>
+	/// Creates a world view with a window attached to it.
+	/// </summary>
 	WorldView(std::string name, int windowX, int windowY, int windowW, int windowH, float hFov, int _id);
+
+	/// <summary>
+	/// Creates a world view without a window attached.
+	/// </summary>
+	WorldView(int bufferW, int bufferH, float hfov, int _id);
 	~WorldView();
 
 	void Render(Scene &scene);

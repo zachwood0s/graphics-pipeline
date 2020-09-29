@@ -1,5 +1,8 @@
 #pragma once
+
 #include <iostream>
+
+class AABB;
 
 class Vec3d
 {
@@ -28,6 +31,7 @@ public:
 	void Set(const Vec3d other);
 	void Clamp(int nearest);
 	void Clamp(Vec3d minVals, Vec3d maxVals);
+	void Clamp(AABB bounds);
 	float Min() const;
 	float Max() const;
 	std::tuple<float, float> Bounds() const;

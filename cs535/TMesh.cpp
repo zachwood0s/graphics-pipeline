@@ -160,23 +160,20 @@ void TMesh::DrawInterpolated(WorldView * view)
 		}
 
 		// Find the bounding box
-		AABB aabb({ pointM[0], pointM[1], pointM[2] });
-		aabb.ClipView(fb->w, fb->h);
-		Rect bounds = aabb.GetPixelRect();
+		Rect bounds = AABB::Clipped(fb->w, fb->h, { pointM[0], pointM[1], pointM[2] }).GetPixelRect();
 			
 		// Compute the edge equations and interpolation
 		Matrix3d edgeEqns = Matrix3d::EdgeEquations(pointM);
 		Matrix3d screenSpaceInterp = Matrix3d::ScreenSpaceInterp(pointM);
-		Vec3d zvals = pointM.GetColumn(2);
+		Vec3d zVals = pointM.GetColumn(2);
 
 		// same as SSIM * colors[i] for each row
 		Matrix3d colorCoefs = (screenSpaceInterp * colorM.Transposed()).Transposed();
-		Vec3d zCoefs = screenSpaceInterp * zvals;
+		Vec3d zCoefs = screenSpaceInterp * zVals;
 
-		float minZ = zvals.Min();
-		float maxZ = zvals.Max(); 
-		Vec3d minColors(colorM[0].Min(), colorM[1].Min(), colorM[2].Min());
-		Vec3d maxColors(colorM[0].Max(), colorM[1].Max(), colorM[2].Max());
+		// Grab the min and max values for the for the interpolation parameters
+		auto[minZ, maxZ] = zVals.Bounds();
+		AABB colorBounds = std::make_from_tuple<AABB>(colorM.Columns());
 
 		// Grab the coefficients individuall so that interp can be done incrementally
 		auto[a, b, c] = edgeEqns.Columns();
@@ -205,7 +202,7 @@ void TMesh::DrawInterpolated(WorldView * view)
 
 					// Clamp each color to somewhere in their starting range.
 					// This handles errors for colors outside the given color range.
-					color.Clamp(minColors, maxColors);
+					color.Clamp(colorBounds);
 
 					fb->Set(currPixX, currPixY, color.GetColor(), tri);
 					exit_early++;

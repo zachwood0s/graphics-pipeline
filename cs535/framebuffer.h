@@ -7,17 +7,14 @@
 #include "vec3d.h"
 #include "ppc.h"
 
-class FrameBuffer : public Fl_Gl_Window {
+class FrameBuffer{
 public:
 	unsigned int *pix; // pixel array
 	float *zb;
 	int *ids; // ids of the triangle that set the pixel
 
 	int w, h;
-	FrameBuffer(int u0, int v0, int _w, int _h, const char * l);
-	void draw();
-	void KeyboardHandle();
-	int handle(int guievent);
+	FrameBuffer(int _w, int _h);
 
 	void SetBGR(unsigned int bgr);
 	void Set(int u, int v, unsigned int color);

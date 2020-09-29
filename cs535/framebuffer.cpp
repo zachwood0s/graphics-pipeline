@@ -12,8 +12,7 @@
 
 using namespace std;
 
-FrameBuffer::FrameBuffer(int u0, int v0,
-	int _w, int _h, const char *label) : Fl_Gl_Window(u0, v0, _w, _h, label) 
+FrameBuffer::FrameBuffer(int _w, int _h) 
 {
 	w = _w;
 	h = _h;
@@ -21,51 +20,6 @@ FrameBuffer::FrameBuffer(int u0, int v0,
 	zb = new float[w*h];
 	ids = new int[w*h];
 
-}
-
-void FrameBuffer::draw() 
-{
-	glDrawPixels(w, h, GL_RGBA, GL_UNSIGNED_BYTE, pix);
-}
-
-int FrameBuffer::handle(int event) 
-{
-
-	switch (event)
-	{
-	case FL_KEYBOARD: {
-		KeyboardHandle();
-		return 0;
-	}
-	case FL_MOVE: {
-		int u = Fl::event_x();
-		int v = Fl::event_y();
-		cout << "TRI: "<< GetId(u, v) << " fv: "<< scene->views[0]->GetPPC()->GetFocalLength() << " "<< u << ", "<< v << "         \r";
-		return 0;
-	}
-	default:
-		break;
-	}
-	return 0;
-}
-
-void FrameBuffer::KeyboardHandle() 
-{
-	int key = Fl::event_key();
-	switch (key) {
-	case FL_Up: {
-		scene->views[0]->GetPPC()->ZoomFocalLength(1.01f);
-		Fl::check();
-		scene->Render();
-		break;
-	}
-	case FL_Down: {
-		scene->views[0]->GetPPC()->ZoomFocalLength(.99f);
-		Fl::check();
-		scene->Render();
-		break;
-	}
-	}
 }
 
 #pragma region Get/Set
@@ -181,7 +135,6 @@ void FrameBuffer::LoadTiff(char* fname)
 		h = height;
 		delete[] pix;
 		pix = new unsigned int[w*h];
-		size(w, h);
 		glFlush();
 		glFlush();
 	}

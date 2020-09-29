@@ -4,6 +4,7 @@
 #include "stdafx.h"
 #include "vec3d.h"
 #include "matrix3d.h"
+#include "AABB.h"
 
 
 const Vec3d Vec3d::Vec3d::ONES = Vec3d(1.0f, 1.0f, 1.0f);
@@ -46,12 +47,17 @@ float clamp(float val, float min, float max)
 	return std::min(max, std::max(val, min));
 }
 
-void Vec3d::Clamp(Vec3d upper, Vec3d lower)
+void Vec3d::Clamp(AABB bounds)
+{
+	Clamp(bounds.Min(), bounds.Max());
+}
+
+void Vec3d::Clamp(Vec3d min, Vec3d max)
 {
 	Vec3d &v = *this;
-	v[0] = clamp(v[0], upper[0], lower[0]);
-	v[1] = clamp(v[1], upper[1], lower[1]);
-	v[2] = clamp(v[2], upper[2], lower[2]);
+	v[0] = clamp(v[0], min[0], max[0]);
+	v[1] = clamp(v[1], min[1], max[1]);
+	v[2] = clamp(v[2], min[2], max[2]);
 }
 
 void Vec3d::Clamp(int nearest)
