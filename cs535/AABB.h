@@ -14,14 +14,9 @@ class AABB
 public:
 	Vec3d corners[2];
 	AABB(Vec3d firstPoint);
-	AABB(std::initializer_list<Vec3d> a);
-
-	template<typename... Args>
-	AABB(Vec3d first, Args... rest) : AABB({ first, rest... })
-	{
-	}
 
 	static AABB Clipped(int w, int h, std::initializer_list<Vec3d> points);
+	static AABB FromPoints(std::initializer_list<Vec3d> points);
 
 	void AddPoint(Vec3d point);
 	void ClipView(int w, int h);

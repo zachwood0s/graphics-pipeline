@@ -22,18 +22,18 @@ Scene::Scene()
 	float hfov = 55.0f;
 
 	WorldView * world = new WorldView("SW Frame Buffer", u0, v0, w, h, hfov, (int) views.size());
-	world->GetPPC()->ZoomFocalLength(.5f);
+	//world->GetPPC()->ZoomFocalLength(.5f);
 	world->showCameraBox = false;
 	world->showCameraScreen = false;
 	world->background.SetFromColor(0xffFF00FF);
 
 	views.push_back(world);
 
-	world = new WorldView("SW 3", u0 + w + 20, v0, w, h, hfov, (int) views.size());
-	world->GetPPC()->ZoomFocalLength(.5f);
-	world->cameraVf = 100.0f;
+//	world = new WorldView("SW 3", u0 + w + 20, v0, w, h, hfov, (int) views.size());
+//	world->GetPPC()->ZoomFocalLength(.5f);
+//	world->cameraVf = 100.0f;
 
-	views.push_back(world);
+//	views.push_back(world);
 
 	gui->uiw->position(u0, v0 + h + 50);
 
@@ -42,11 +42,12 @@ Scene::Scene()
 
 	tmeshes[0].LoadBin("geometry/teapot1k.bin");
 	tmeshes[0].SetCenter(Vec3d::ZEROS);
-	tmeshes[0].ScaleTo(200);
-	tmeshes[0].Rotate(Vec3d::ZEROS, Vec3d::YAXIS, 90);
+	//tmeshes[0].SetToCube(Vec3d::ZEROS, 100, 0xff00ff00, 0xff0000ff);
+	tmeshes[0].Rotate(Vec3d::ZEROS, Vec3d::YAXIS, 90.0f);
 
-	views[0]->GetPPC()->SetPose(Vec3d(100, 100, 200), Vec3d::ZEROS, Vec3d::YAXIS);
-	views[1]->GetPPC()->SetPose(Vec3d(200, 0, -300), Vec3d::ZEROS, Vec3d::YAXIS);
+	views[0]->GetPPC()->SetPose(Vec3d(0, 0, 200), Vec3d::ZEROS, Vec3d::YAXIS);
+	light = Vec3d(world->GetPPC()->C);
+//	views[1]->GetPPC()->SetPose(Vec3d(200, 0, -300), Vec3d::ZEROS, Vec3d::YAXIS);
 
 	Render();
 
@@ -75,6 +76,16 @@ void Scene::DBG()
 {
 
 	PPC * ppc = views[0]->GetPPC();
+
+	{
+		for (int i = 0; i < 720; i++)
+		{
+			light = light.Rotate(Vec3d::ZEROS, Vec3d::YAXIS, 1);
+			Render();
+			Fl::check();
+		}
+		return;
+	}
 
 
 	{

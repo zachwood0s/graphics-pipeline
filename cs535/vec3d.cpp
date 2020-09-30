@@ -21,7 +21,7 @@ Vec3d::Vec3d(float _vals[3]) : Vec3d(_vals[0], _vals[1], _vals[2])
 {
 }
 
-Vec3d::Vec3d() : vals()
+Vec3d::Vec3d() : vals{0.0f, 0.0f, 0.0f}
 {
 }
 
@@ -209,6 +209,22 @@ unsigned int Vec3d::GetColor() const
 	rgb[2] = (unsigned char)(255.0f * v[2]);
 	ret = 0xFF000000 + rgb[2] * 256 * 256 + rgb[1] * 256 + rgb[0];
 	return ret;
+}
+
+Vec3d Vec3d::Light(Vec3d lightVector, Vec3d normalVector, Vec3d viewDirection, float kAmbient, float kSpecular) const
+{
+	float kd = lightVector*normalVector; kd = (kd < 0.0f) ? 0.0f : kd;
+	Vec3d reflected = (lightVector * -1).Reflect(normalVector);
+
+	float kPhong = pow(std::max({ viewDirection * reflected, 0.0f }), 32) * kSpecular;
+	const Vec3d &C = *this;
+	return C*(kAmbient + (1.0f - kAmbient)*kd + kPhong);
+}
+
+Vec3d Vec3d::Reflect(Vec3d normal) const
+{
+	const Vec3d& d = *this;
+	return normal * (-2 * (d * normal))  + d;
 }
 
 Vec3d Vec3d::Interpolate(Vec3d p0, Vec3d p1, int currStep, int stepCount)

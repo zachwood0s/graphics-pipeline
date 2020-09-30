@@ -50,6 +50,8 @@ public:
 
 	void SetFromColor(unsigned int color);
 	unsigned int GetColor() const;
+	Vec3d Light(Vec3d lightVector, Vec3d normalVector, Vec3d viewDirection, float kAmbient, float kSpecular) const;
+	Vec3d Reflect(Vec3d normal) const;
 
 	static Vec3d Interpolate(Vec3d p0, Vec3d p1, int currStep, int stepCount);
 	static Vec3d Interpolate(Vec3d p0, Vec3d p1, float t);

@@ -7,6 +7,7 @@
 #include "TMesh.h"
 #include "WorldView.h"
 
+class Vec3d;
 
 class Scene {
 public:
@@ -20,6 +21,8 @@ public:
 	void DBG();
 	void NewButton();
 	void Render();
+
+	Vec3d light;
 
 	friend void WorldView::Render(Scene &scene);
 

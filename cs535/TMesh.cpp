@@ -140,7 +140,7 @@ void TMesh::DrawWireFrame(WorldView * view, unsigned int color)
 
 }
 
-void TMesh::DrawInterpolated(WorldView * view)
+void TMesh::DrawInterpolated(WorldView * view, Vec3d materialColor, Vec3d light, float kSpecular)
 {
 
 	Vec3d *projected = ProjectAll(view);
@@ -153,14 +153,19 @@ void TMesh::DrawInterpolated(WorldView * view)
 		// Create the point matrix and color matrix for this triangle
 		Matrix3d pointM(projected[vertexIdx[0]], projected[vertexIdx[1]], projected[vertexIdx[2]]);
 		Matrix3d colorM = Matrix3d::FromColumns(colors[vertexIdx[0]], colors[vertexIdx[1]], colors[vertexIdx[2]]);
+		Matrix3d normalM = Matrix3d::FromColumns(normals[vertexIdx[0]], normals[vertexIdx[1]], normals[vertexIdx[2]]);
 
 		if (pointM[0][0] == FLT_MAX || pointM[1][0] == FLT_MAX || pointM[2][0] == FLT_MAX)
 		{
 			continue;
 		}
 
-		// Find the bounding box
+		// Find the bounding box and skip the triangle if its empty
 		Rect bounds = AABB::Clipped(fb->w, fb->h, { pointM[0], pointM[1], pointM[2] }).GetPixelRect();
+		if (bounds.right < bounds.left || bounds.bottom < bounds.top)
+		{
+			continue;
+		}
 			
 		// Compute the edge equations and interpolation
 		Matrix3d edgeEqns = Matrix3d::EdgeEquations(pointM);
@@ -169,52 +174,69 @@ void TMesh::DrawInterpolated(WorldView * view)
 
 		// same as SSIM * colors[i] for each row
 		Matrix3d colorCoefs = (screenSpaceInterp * colorM.Transposed()).Transposed();
+		Matrix3d normalCoefs = (screenSpaceInterp * normalM.Transposed()).Transposed();
 		Vec3d zCoefs = screenSpaceInterp * zVals;
 
 		// Grab the min and max values for the for the interpolation parameters
 		auto[minZ, maxZ] = zVals.Bounds();
-		AABB colorBounds = std::make_from_tuple<AABB>(colorM.Columns());
-
-		// Grab the coefficients individuall so that interp can be done incrementally
-		auto[a, b, c] = edgeEqns.Columns();
+		auto[c1, c2, c3] = colorM.Columns();
+		AABB colorBounds = AABB::FromPoints({ c1, c2, c3 });
 
 		// This is the same as t = a * left + b * top + c;
-		Vec3d t = edgeEqns * Vec3d(bounds.left + .5f, bounds.top + .5f, 1);
+		Vec3d starting(bounds.left + .5f, bounds.top + .5f, 1);
+		InterpCoefs coefs(edgeEqns, colorCoefs, normalCoefs, zCoefs, Vec3d::ZEROS);
+		InterpVal interpT = coefs.Start(starting);
 
-		for (int currPixY = bounds.top; currPixY <= bounds.bottom; currPixY++, t = t + b)
+		for (int currPixY = bounds.top; 
+			 currPixY <= bounds.bottom; 
+			 currPixY++, interpT = coefs.StepIdx(interpT, 1) 
+			)
 		{
 			int exit_early = 0; //Used for when we exit the triangle, we know we can continue onto next line because triangles are convex;
-			Vec3d e = t;
+			//Vec3d e = t, colorE = colorT;
+			//float zE = zT;
+			InterpVal interpE = interpT;
 
-			for (int currPixX = bounds.left; currPixX <= bounds.right; currPixX++, e = e + a)
+			for (int currPixX = bounds.left; 
+				 currPixX <= bounds.right; 
+				 currPixX++, interpE = coefs.StepIdx(interpE, 0)
+				)
 			{
-				if (e[0] >= 0 && e[1] >= 0 && e[2] >= 0)
+				if (interpE.edges[0] >= 0 && interpE.edges[1] >= 0 && interpE.edges[2] >= 0)
 				{
-					Vec3d p = Vec3d((float) currPixX, (float) currPixY, 1);
-
 					// Clamp the z value so that its valid for this triangle.
-					float currZ = clamp(zCoefs * p, minZ, maxZ);
-					if (fb->Farther((int) p[0], (int) p[1], currZ))
+					float currZ = clamp(interpE.zVal, minZ, maxZ);
+					if (fb->Farther(currPixX, currPixY, currZ))
 					{
 						continue;
 					}
-					Vec3d color = colorCoefs * p;
+
+					// Normal at current pixel
+					Vec3d currPix = Vec3d(currPixX + .5f, currPixY + .5f, 1);
+					Vec3d normalVector = interpE.normals.Normalized();
+
+					// 3D surface point at current pixel
+					Vec3d currP = view->GetPPC()->UnProject(Vec3d(currPix[0], currPix[1], currZ));
+
+					// Light vector
+					Vec3d lightVector = (light - currP).Normalized();
+					Vec3d viewDir = (view->GetPPC()->C - currP).Normalized();
+					Vec3d currColor = materialColor.Light(lightVector, normalVector, viewDir, view->kAmbient, kSpecular);
 
 					// Clamp each color to somewhere in their starting range.
 					// This handles errors for colors outside the given color range.
-					color.Clamp(colorBounds);
+					//interpE.colors.Clamp(colorBounds);
+					currColor.Clamp(Vec3d::ZEROS, Vec3d::ONES);
 
-					fb->Set(currPixX, currPixY, color.GetColor(), tri);
+					fb->Set(currPixX, currPixY, currColor.GetColor(), tri);
 					exit_early++;
 				}
 				else if (exit_early != 0)
 				{
 					break; // Continue onto next line
 				}
-
 			}
 		}
-
 	}
 
 	delete[] projected;
@@ -238,56 +260,73 @@ void TMesh::DrawModelSpaceInterpolated(WorldView *view)
 			continue;
 		}
 
-		// Find the bounding box
+		// Find the bounding box and skip the triangle if its empty
 		Rect bounds = AABB::Clipped(fb->w, fb->h, { pointM[0], pointM[1], pointM[2] }).GetPixelRect();
+		if (bounds.right < bounds.left || bounds.bottom < bounds.top)
+		{
+			continue;
+		}
 			
 		// Compute the edge equations and interpolation
 		Matrix3d edgeEqns = Matrix3d::EdgeEquations(pointM);
-		Matrix3d modelSpaceInterp = Matrix3d::ModelSpaceInterp(pointM, view->GetPPC());
+		Matrix3d modelSpaceInterp = Matrix3d::ModelSpaceInterp(pointM, view->GetPPC()).Transposed();
+		Matrix3d screenSpaceInterp = Matrix3d::ScreenSpaceInterp(pointM);
 		Vec3d denomParam = modelSpaceInterp * Vec3d::ONES;
 		Vec3d zVals = pointM.GetColumn(2);
 
 		// same as MSIM * colors[i] for each row
 		Matrix3d colorCoefs = (modelSpaceInterp * colorM.Transposed()).Transposed();
-		Vec3d zCoefs = modelSpaceInterp * zVals;
+		Matrix3d colorCoefsTest = (screenSpaceInterp * colorM.Transposed()).Transposed();
+		Vec3d zCoefs = screenSpaceInterp * zVals;
 
 		// Grab the min and max values for the for the interpolation parameters
 		auto[minZ, maxZ] = zVals.Bounds();
-		AABB colorBounds = std::make_from_tuple<AABB>(colorM.Columns());
-
-		// Grab the coefficients individual so that interp can be done incrementally
-		auto[a, b, c] = edgeEqns.Columns();
+		auto[c1, c2, c3] = colorM.Columns();
+		AABB colorBounds = AABB::FromPoints({ c1, c2, c3 });
 
 		// This is the same as t = a * left + b * top + c;
-		Vec3d t = edgeEqns * Vec3d(bounds.left + .5f, bounds.top + .5f, 1);
+		Vec3d starting(bounds.left + .5f, bounds.top + .5f, 1);
+		InterpCoefs coefs(edgeEqns, colorCoefs, colorCoefs, zCoefs, denomParam);
+		InterpVal interpT = coefs.Start(starting);
 
 		// Draw the triangle
-		for (int currPixY = bounds.top; currPixY <= bounds.bottom; currPixY++, t = t + b)
+		for (int currPixY = bounds.top; currPixY <= bounds.bottom; currPixY++, interpT = coefs.StepIdx(interpT, 1))
 		{
 			int exit_early = 0; //Used for when we exit the triangle, we know we can continue onto next line because triangles are convex;
-			Vec3d e = t;
+			InterpVal interpE = interpT;
 
-			for (int currPixX = bounds.left; currPixX <= bounds.right; currPixX++, e = e + a)
+			for (int currPixX = bounds.left; currPixX <= bounds.right; currPixX++, interpE = coefs.StepIdx(interpE, 0))
 			{
-				if (e[0] >= 0 && e[1] >= 0 && e[2] >= 0)
+				if (interpE.edges[0] >= 0 && interpE.edges[1] >= 0 && interpE.edges[2] >= 0)
 				{
-					Vec3d p = Vec3d((float) currPixX, (float) currPixY, 1);
-					float denom = 1 / (denomParam * p);
+					Vec3d p = Vec3d(currPixX + .5f, currPixY + .5f, 1);
 
 					// Clamp the z value so that its valid for this triangle.
-					float currZ = zCoefs * p * denom;//clamp(zCoefs * p * denom, minZ, maxZ);
-					if (fb->Farther((int) p[0], (int) p[1], currZ))
+					float currZ = zCoefs * p;//clamp(interpE.zVal * denom, minZ, maxZ);
+					if (fb->Farther(currPixX, currPixY, currZ))
 					{
 						continue;
 					}
+					
 
-					Vec3d color = colorCoefs * p * denom;
+					Vec3d color = interpE.colors / interpE.denom;
+					auto[q1, q2, q3] = modelSpaceInterp.Transposed().Columns();
+					float red =   (q1 * colorM[0]) * p[0] + (q2 * colorM[0]) * p[1] + q3 * colorM[0];
+					float green = (q1 * colorM[1]) * p[0] + (q2 * colorM[1]) * p[1] + q3 * colorM[1];
+					float blue =  (q1 * colorM[2]) * p[0] + (q2 * colorM[2]) * p[1] + q3 * colorM[2];
+
+					float denom2 = q1 * Vec3d::ONES * p[0] + q2 * Vec3d::ONES * p[1] + q3 * Vec3d::ONES;
+					red /= denom2;
+					green /= denom2;
+					blue /= denom2;
+
+					Vec3d colorTest = Vec3d(red, green, blue);
 
 					// Clamp each color to somewhere in their starting range.
 					// This handles errors for colors outside the given color range.
-					//color.Clamp(colorBounds.Min(), colorBounds.Max());
+					//color.Clamp(colorBounds);
 
-					fb->Set(currPixX, currPixY, color.GetColor(), tri);
+					fb->Set(currPixX, currPixY, colorTest.GetColor(), tri);
 					exit_early++;
 				}
 				else if (exit_early != 0)
@@ -372,7 +411,7 @@ void TMesh::LoadBin(const char *fname)
 
 }
 
-Vec3d TMesh::GetCenter() 
+Vec3d TMesh::GetCenter() const
 {
 	Vec3d ret(0.0f, 0.0f, 0.0f);
 	for (int vi = 0; vi < vertsN; vi++) {
@@ -400,33 +439,29 @@ void TMesh::Rotate(Vec3d axisOrigin, Vec3d axisDir, float theta)
 	for (int vi = 0; vi < vertsN; vi++)
 	{
 		verts[vi] = verts[vi].Rotate(axisOrigin, axisDir, theta);
+		normals[vi] = normals[vi].Rotate(axisOrigin, axisDir, theta);
 	}
 }
 
-void TMesh::GetAABB(Vec3d &smallest, Vec3d &largest)
+AABB TMesh::GetAABB() const
 {
 	if (vertsN == 0)
 	{
-		return;
+		return AABB(Vec3d::ZEROS);
 	}
 
-	smallest = verts[0];
-	largest = verts[0];
+	AABB aabb(verts[0]);
+
 	for (int vi = 1; vi < vertsN; vi++)
 	{
-		smallest[0] = min(smallest[0], verts[vi][0]);
-		smallest[1] = min(smallest[1], verts[vi][1]);
-		smallest[2] = min(smallest[2], verts[vi][2]);
-		largest[0] = max(largest[0], verts[vi][0]);
-		largest[1] = max(largest[1], verts[vi][1]);
-		largest[2] = max(largest[2], verts[vi][2]);
+		aabb.AddPoint(verts[vi]);
 	}
+	return aabb;
 }
 
 void TMesh::ScaleTo(float size)
 {	
-	Vec3d smallest, largest;
-	GetAABB(smallest, largest);
+	AABB aabb = GetAABB();
 
 	Vec3d currCenter = GetCenter();
 
@@ -434,7 +469,7 @@ void TMesh::ScaleTo(float size)
 	SetCenter(Vec3d(0, 0, 0));
 
 	// Get the length of the current diagonal
-	float currSize = (largest - smallest).Length();
+	float currSize = (aabb.Max() - aabb.Min()).Length();
 	float scaleFactor = size / currSize;
 
 	Vec3d center = GetCenter();

@@ -139,6 +139,7 @@
     <ClInclude Include="framebuffer.h" />
     <ClInclude Include="glext.h" />
     <ClInclude Include="gui.h" />
+    <ClInclude Include="InterpParam.h" />
     <ClInclude Include="matrix3d.h" />
     <ClInclude Include="ppc.h" />
     <ClInclude Include="scene.h" />

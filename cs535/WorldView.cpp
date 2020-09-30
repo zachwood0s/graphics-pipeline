@@ -13,7 +13,7 @@ WorldView::WorldView(std::string name, int windowX, int windowY, int windowW, in
 }
 
 WorldView::WorldView(int bufferW, int bufferH, float hFov, int _id) 
-	:id(_id), showCameraBox(true), showCameraScreen(true), cameraVf(20.0f), window(nullptr)
+	:id(_id), showCameraBox(true), showCameraScreen(true), cameraVf(20.0f), window(nullptr), kAmbient(0.2f)
 {
 	fb = new FrameBuffer(bufferW, bufferH);
 	ppc = new PPC(hFov, bufferW, bufferH);
@@ -42,7 +42,8 @@ void WorldView::Render(Scene & scene)
 	{
 		if (!scene.tmeshes[tmi].onFlag)
 			continue;
-		scene.tmeshes[tmi].DrawInterpolated(this);
+
+		scene.tmeshes[tmi].DrawInterpolated(this, Vec3d(1, 0, 0), scene.light, 0.9f);
 	}
 
 	if (showCameraBox || showCameraScreen)

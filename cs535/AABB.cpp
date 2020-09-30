@@ -9,17 +9,19 @@ AABB::AABB(Vec3d firstPoint)
 {
 }
 
-AABB::AABB(std::initializer_list<Vec3d> list) : AABB(*list.begin())
+AABB AABB::FromPoints(std::initializer_list<Vec3d> list)
 {
+	AABB aabb(*list.begin());
 	for (auto v : list)
 	{
-		AddPoint(v);
+		aabb.AddPoint(v);
 	}
+	return aabb;
 }
 
 AABB AABB::Clipped(int w, int h, std::initializer_list<Vec3d> list)
 {
-	AABB aabb(list);
+	AABB aabb = AABB::FromPoints(list);
 	aabb.ClipView(w, h);
 	return aabb;
 }

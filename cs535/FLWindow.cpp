@@ -51,6 +51,18 @@ void FLWindow::KeyboardHandle()
 		scene->Render();
 		break;
 	}
+	case FL_Right: {
+		scene->tmeshes[0].Rotate(Vec3d::ZEROS, Vec3d::YAXIS, 5);
+		Fl::check();
+		scene->Render();
+		break;
+	}
+	case FL_Left: {
+		scene->tmeshes[0].Rotate(Vec3d::ZEROS, Vec3d::YAXIS, -5);
+		Fl::check();
+		scene->Render();
+		break;
+	}
 	}
 }
 

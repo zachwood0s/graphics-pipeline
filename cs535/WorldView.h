@@ -18,6 +18,7 @@ public:
 	bool showCameraBox;
 	bool showCameraScreen;
 	float cameraVf;
+	float kAmbient;
 	Vec3d colorCameraBox;
 	Vec3d colorCameraPoint;
 	Vec3d background;
