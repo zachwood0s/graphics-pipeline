@@ -9,11 +9,16 @@
 
 class Vec3d;
 
+using TEX_HANDLE = int;
+
+constexpr auto TEX_INVALID = -1;
+
 class Scene {
 public:
 
 	GUI *gui;
 	std::vector<WorldView*> views;
+	std::vector<FrameBuffer*> textures;
 	TMesh *tmeshes;
 	int tmeshesN;
 	Scene();
@@ -23,6 +28,8 @@ public:
 	void Render();
 
 	Vec3d light;
+
+	TEX_HANDLE LoadTexture(const char *);
 
 	friend void WorldView::Render(Scene &scene);
 

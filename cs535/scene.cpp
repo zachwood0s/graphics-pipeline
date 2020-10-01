@@ -40,14 +40,17 @@ Scene::Scene()
 	tmeshesN = 5;
 	tmeshes = new TMesh[tmeshesN];
 
-	tmeshes[0].LoadBin("geometry/teapot1k.bin");
+	tmeshes[0].LoadBin("geometry/teapot57k.bin");
 	tmeshes[0].SetCenter(Vec3d::ZEROS);
+	//tmeshes[0].SetMaterial({ Vec3d(.2f, .2f, .2f), 16, 0.1f });
 	//tmeshes[0].SetToCube(Vec3d::ZEROS, 100, 0xff00ff00, 0xff0000ff);
 	tmeshes[0].Rotate(Vec3d::ZEROS, Vec3d::YAXIS, 90.0f);
 
 	views[0]->GetPPC()->SetPose(Vec3d(0, 0, 200), Vec3d::ZEROS, Vec3d::YAXIS);
 	light = Vec3d(world->GetPPC()->C);
 //	views[1]->GetPPC()->SetPose(Vec3d(200, 0, -300), Vec3d::ZEROS, Vec3d::YAXIS);
+
+	TEX_HANDLE wood = LoadTexture("textures/wood.tiff");
 
 	Render();
 
@@ -59,6 +62,14 @@ Scene::~Scene()
 	{
 		delete world;
 	}
+
+	for (auto tex : textures)
+	{
+		delete tex;
+	}
+
+	views.clear();
+	textures.clear();
 
 	delete[] tmeshes;
 	tmeshes = nullptr;
@@ -180,6 +191,19 @@ void Scene::DBG()
 		}
 		return;
 	}
+}
+
+TEX_HANDLE Scene::LoadTexture(const char * filename)
+{
+	FrameBuffer * buffer = new FrameBuffer(0, 0);
+	if (!buffer->LoadTiff(filename))
+	{
+		delete buffer;
+		return TEX_INVALID;
+	}
+	
+	textures.push_back(buffer);
+	return textures.size() - 1;
 }
 
 

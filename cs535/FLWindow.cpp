@@ -40,15 +40,17 @@ void FLWindow::KeyboardHandle()
 	int key = Fl::event_key();
 	switch (key) {
 	case FL_Up: {
-		scene->views[0]->GetPPC()->ZoomFocalLength(1.01f);
-		Fl::check();
+		//scene->views[0]->GetPPC()->ZoomFocalLength(1.01f);
+		scene->tmeshes[0].GetMaterial().kSpecular += 0.1f;
 		scene->Render();
+		Fl::check();
 		break;
 	}
 	case FL_Down: {
-		scene->views[0]->GetPPC()->ZoomFocalLength(.99f);
-		Fl::check();
+		//scene->views[0]->GetPPC()->ZoomFocalLength(.99f);
+		scene->tmeshes[0].GetMaterial().kSpecular += 0.1f;
 		scene->Render();
+		Fl::check();
 		break;
 	}
 	case FL_Right: {

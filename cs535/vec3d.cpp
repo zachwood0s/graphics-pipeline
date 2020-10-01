@@ -5,6 +5,7 @@
 #include "vec3d.h"
 #include "matrix3d.h"
 #include "AABB.h"
+#include "Material.h"
 
 
 const Vec3d Vec3d::Vec3d::ONES = Vec3d(1.0f, 1.0f, 1.0f);
@@ -211,12 +212,12 @@ unsigned int Vec3d::GetColor() const
 	return ret;
 }
 
-Vec3d Vec3d::Light(Vec3d lightVector, Vec3d normalVector, Vec3d viewDirection, float kAmbient, float kSpecular) const
+Vec3d Vec3d::Light(Vec3d lightVector, Vec3d normalVector, Vec3d viewDirection, float kAmbient, Material m) const
 {
 	float kd = lightVector*normalVector; kd = (kd < 0.0f) ? 0.0f : kd;
 	Vec3d reflected = (lightVector * -1).Reflect(normalVector);
 
-	float kPhong = pow(std::max({ viewDirection * reflected, 0.0f }), 32) * kSpecular;
+	float kPhong = pow(std::max({ viewDirection * reflected, 0.0f }), m.phongExponent) * m.kSpecular;
 	const Vec3d &C = *this;
 	return C*(kAmbient + (1.0f - kAmbient)*kd + kPhong);
 }

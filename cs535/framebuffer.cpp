@@ -119,13 +119,15 @@ Vec3d GetColorCoeffs(Matrix3d points, Vec3d rastParam)
 
 
 // load a tiff image to pixel buffer
-void FrameBuffer::LoadTiff(char* fname) 
+bool FrameBuffer::LoadTiff(const char* fname) 
 {
 	TIFF* in = TIFFOpen(fname, "r");
 	if (in == NULL) {
 		cerr << fname << " could not be opened" << endl;
-		return;
+		return false;
 	}
+
+	bool success = true;
 
 	int width, height;
 	TIFFGetField(in, TIFFTAG_IMAGEWIDTH, &width);
@@ -141,9 +143,11 @@ void FrameBuffer::LoadTiff(char* fname)
 
 	if (TIFFReadRGBAImage(in, w, h, pix, 0) == 0) {
 		cerr << "failed to load " << fname << endl;
+		success = false;
 	}
 
 	TIFFClose(in);
+	return success;
 }
 
 // save as tiff image

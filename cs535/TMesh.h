@@ -4,6 +4,7 @@
 #include "ppc.h"
 #include "framebuffer.h"
 #include "WorldView.h"
+#include "Material.h"
 
 struct InterpVal
 {
@@ -52,30 +53,47 @@ struct InterpCoefs
 	}
 };
 
-class TMesh {
+
+class TMesh 
+{
+private:
+	Material material;
+
 public:
 	int onFlag;
 	Vec3d *verts;
 	Vec3d *colors;
 	Vec3d *normals;
+	Vec3d *texs;
 	int vertsN;
 	unsigned int *tris;
 	int trisN;
-	TMesh() : verts(0), vertsN(0), tris(0), trisN(0), colors(0), normals(0), onFlag(1) {};
+
+	bool hasMaterial = false;
+
+	TMesh();
 	~TMesh();
 	void SetToCube(Vec3d cc, float sideLength, unsigned int color0, unsigned int color1);
 	void Allocate(int _vertsN, int _trisN);
+
 	void DrawCubeQuadFaces(FrameBuffer *fb, PPC *ppc, unsigned int color);
 	void DrawWireFrame(WorldView * world, unsigned int color);
-	void DrawInterpolated(WorldView * world, Vec3d C, Vec3d light, float kSpecular);
-	void DrawModelSpaceInterpolated(WorldView *world);
+	void DrawInterpolated(WorldView * world, Vec3d light);
+	void DrawModelSpaceInterpolated(WorldView *world, Vec3d light);
+
 	void LoadBin(const char *fname);
+
 	Vec3d GetCenter() const;
 	void SetCenter(Vec3d center);
+
+	void SetMaterial(Material m);
+	Material& GetMaterial();
+
 	void Translate(Vec3d tv);
 	void Rotate(Vec3d axisOrigin, Vec3d axisDir, float theta);
 	AABB GetAABB() const;
 	void ScaleTo(float size);
+
 
 	Vec3d* ProjectAll(WorldView* view) const;
 };

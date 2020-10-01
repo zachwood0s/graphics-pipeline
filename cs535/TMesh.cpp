@@ -7,6 +7,7 @@
 #include "TMesh.h"
 #include "AABB.h"
 #include "matrix3d.h"
+#include "Material.h"
 
 using namespace std;
 
@@ -16,7 +17,13 @@ TMesh::~TMesh()
 	delete colors;
 	delete normals;
 	delete tris;
+	delete texs;
 }
+
+TMesh::TMesh() 
+	: verts(0), vertsN(0), tris(0), trisN(0), colors(0), 
+	  normals(0), onFlag(1), material(Material::DEFAULT(Vec3d::ZEROS)) 
+{};
 
 
 void TMesh::Allocate(int _vertsN, int _trisN) 
@@ -26,6 +33,7 @@ void TMesh::Allocate(int _vertsN, int _trisN)
 	verts = new Vec3d[vertsN];
 	colors = new Vec3d[vertsN];
 	normals = new Vec3d[vertsN];
+	texs = new Vec3d[trisN * 3];
 	tris = new unsigned int[trisN * 3];
 }
 
@@ -140,7 +148,7 @@ void TMesh::DrawWireFrame(WorldView * view, unsigned int color)
 
 }
 
-void TMesh::DrawInterpolated(WorldView * view, Vec3d materialColor, Vec3d light, float kSpecular)
+void TMesh::DrawInterpolated(WorldView * view, Vec3d light)
 {
 
 	Vec3d *projected = ProjectAll(view);
@@ -187,20 +195,14 @@ void TMesh::DrawInterpolated(WorldView * view, Vec3d materialColor, Vec3d light,
 		InterpCoefs coefs(edgeEqns, colorCoefs, normalCoefs, zCoefs, Vec3d::ZEROS);
 		InterpVal interpT = coefs.Start(starting);
 
-		for (int currPixY = bounds.top; 
-			 currPixY <= bounds.bottom; 
-			 currPixY++, interpT = coefs.StepIdx(interpT, 1) 
-			)
+		for (int currPixY = bounds.top; currPixY <= bounds.bottom; currPixY++, interpT = coefs.StepIdx(interpT, 1))
 		{
 			int exit_early = 0; //Used for when we exit the triangle, we know we can continue onto next line because triangles are convex;
 			//Vec3d e = t, colorE = colorT;
 			//float zE = zT;
 			InterpVal interpE = interpT;
 
-			for (int currPixX = bounds.left; 
-				 currPixX <= bounds.right; 
-				 currPixX++, interpE = coefs.StepIdx(interpE, 0)
-				)
+			for (int currPixX = bounds.left; currPixX <= bounds.right; currPixX++, interpE = coefs.StepIdx(interpE, 0))
 			{
 				if (interpE.edges[0] >= 0 && interpE.edges[1] >= 0 && interpE.edges[2] >= 0)
 				{
@@ -210,6 +212,9 @@ void TMesh::DrawInterpolated(WorldView * view, Vec3d materialColor, Vec3d light,
 					{
 						continue;
 					}
+
+					// Get the material values
+					Material currMat = hasMaterial ? material : Material::DEFAULT(interpE.colors);
 
 					// Normal at current pixel
 					Vec3d currPix = Vec3d(currPixX + .5f, currPixY + .5f, 1);
@@ -221,11 +226,10 @@ void TMesh::DrawInterpolated(WorldView * view, Vec3d materialColor, Vec3d light,
 					// Light vector
 					Vec3d lightVector = (light - currP).Normalized();
 					Vec3d viewDir = (view->GetPPC()->C - currP).Normalized();
-					Vec3d currColor = materialColor.Light(lightVector, normalVector, viewDir, view->kAmbient, kSpecular);
+					Vec3d currColor = currMat.color.Light(lightVector, normalVector, viewDir, view->kAmbient, currMat);
 
 					// Clamp each color to somewhere in their starting range.
 					// This handles errors for colors outside the given color range.
-					//interpE.colors.Clamp(colorBounds);
 					currColor.Clamp(Vec3d::ZEROS, Vec3d::ONES);
 
 					fb->Set(currPixX, currPixY, currColor.GetColor(), tri);
@@ -242,7 +246,7 @@ void TMesh::DrawInterpolated(WorldView * view, Vec3d materialColor, Vec3d light,
 	delete[] projected;
 }
 
-void TMesh::DrawModelSpaceInterpolated(WorldView *view)
+void TMesh::DrawModelSpaceInterpolated(WorldView *view, Vec3d light)
 {
 	Vec3d *projected = ProjectAll(view);
 	FrameBuffer * fb = view->GetFB();
@@ -253,7 +257,9 @@ void TMesh::DrawModelSpaceInterpolated(WorldView *view)
 
 		// Create the point matrix and color matrix for this triangle
 		Matrix3d pointM(projected[vertexIdx[0]], projected[vertexIdx[1]], projected[vertexIdx[2]]);
+		Matrix3d unProjected(verts[vertexIdx[0]], verts[vertexIdx[1]], verts[vertexIdx[2]]);
 		Matrix3d colorM = Matrix3d::FromColumns(colors[vertexIdx[0]], colors[vertexIdx[1]], colors[vertexIdx[2]]);
+		Matrix3d normalM = Matrix3d::FromColumns(normals[vertexIdx[0]], normals[vertexIdx[1]], normals[vertexIdx[2]]);
 
 		if (pointM[0][0] == FLT_MAX || pointM[1][0] == FLT_MAX || pointM[2][0] == FLT_MAX)
 		{
@@ -269,15 +275,14 @@ void TMesh::DrawModelSpaceInterpolated(WorldView *view)
 			
 		// Compute the edge equations and interpolation
 		Matrix3d edgeEqns = Matrix3d::EdgeEquations(pointM);
-		Matrix3d modelSpaceInterp = Matrix3d::ModelSpaceInterp(pointM, view->GetPPC()).Transposed();
-		Matrix3d screenSpaceInterp = Matrix3d::ScreenSpaceInterp(pointM);
+		Matrix3d modelSpaceInterp = Matrix3d::ModelSpaceInterp(unProjected, view->GetPPC()).Transposed();
 		Vec3d denomParam = modelSpaceInterp * Vec3d::ONES;
 		Vec3d zVals = pointM.GetColumn(2);
 
 		// same as MSIM * colors[i] for each row
 		Matrix3d colorCoefs = (modelSpaceInterp * colorM.Transposed()).Transposed();
-		Matrix3d colorCoefsTest = (screenSpaceInterp * colorM.Transposed()).Transposed();
-		Vec3d zCoefs = screenSpaceInterp * zVals;
+		Matrix3d normalCoefs = (modelSpaceInterp * normalM.Transposed()).Transposed();
+		Vec3d zCoefs = modelSpaceInterp * zVals;
 
 		// Grab the min and max values for the for the interpolation parameters
 		auto[minZ, maxZ] = zVals.Bounds();
@@ -286,7 +291,7 @@ void TMesh::DrawModelSpaceInterpolated(WorldView *view)
 
 		// This is the same as t = a * left + b * top + c;
 		Vec3d starting(bounds.left + .5f, bounds.top + .5f, 1);
-		InterpCoefs coefs(edgeEqns, colorCoefs, colorCoefs, zCoefs, denomParam);
+		InterpCoefs coefs(edgeEqns, colorCoefs, normalCoefs, zCoefs, denomParam);
 		InterpVal interpT = coefs.Start(starting);
 
 		// Draw the triangle
@@ -299,34 +304,33 @@ void TMesh::DrawModelSpaceInterpolated(WorldView *view)
 			{
 				if (interpE.edges[0] >= 0 && interpE.edges[1] >= 0 && interpE.edges[2] >= 0)
 				{
-					Vec3d p = Vec3d(currPixX + .5f, currPixY + .5f, 1);
-
 					// Clamp the z value so that its valid for this triangle.
-					float currZ = zCoefs * p;//clamp(interpE.zVal * denom, minZ, maxZ);
+					float currZ = clamp(interpE.zVal * interpE.denom, minZ, maxZ);
 					if (fb->Farther(currPixX, currPixY, currZ))
 					{
 						continue;
 					}
-					
 
-					Vec3d color = interpE.colors / interpE.denom;
-					auto[q1, q2, q3] = modelSpaceInterp.Transposed().Columns();
-					float red =   (q1 * colorM[0]) * p[0] + (q2 * colorM[0]) * p[1] + q3 * colorM[0];
-					float green = (q1 * colorM[1]) * p[0] + (q2 * colorM[1]) * p[1] + q3 * colorM[1];
-					float blue =  (q1 * colorM[2]) * p[0] + (q2 * colorM[2]) * p[1] + q3 * colorM[2];
+					// Get the material values
+					Material currMat = hasMaterial ? material : Material::DEFAULT(interpE.colors);
 
-					float denom2 = q1 * Vec3d::ONES * p[0] + q2 * Vec3d::ONES * p[1] + q3 * Vec3d::ONES;
-					red /= denom2;
-					green /= denom2;
-					blue /= denom2;
+					// Normal at current pixel
+					Vec3d currPix = Vec3d(currPixX + .5f, currPixY + .5f, 1);
+					Vec3d normalVector = interpE.normals.Normalized();
 
-					Vec3d colorTest = Vec3d(red, green, blue);
+					// 3D surface point at current pixel
+					Vec3d currP = view->GetPPC()->UnProject(Vec3d(currPix[0], currPix[1], currZ));
+
+					// Light vector
+					Vec3d lightVector = (light - currP).Normalized();
+					Vec3d viewDir = (view->GetPPC()->C - currP).Normalized();
+					Vec3d currColor = currMat.color.Light(lightVector, normalVector, viewDir, view->kAmbient, currMat);
 
 					// Clamp each color to somewhere in their starting range.
 					// This handles errors for colors outside the given color range.
-					//color.Clamp(colorBounds);
+					currColor.Clamp(Vec3d::ZEROS, Vec3d::ONES);
 
-					fb->Set(currPixX, currPixY, colorTest.GetColor(), tri);
+					fb->Set(currPixX, currPixY, currColor.GetColor(), tri);
 					exit_early++;
 				}
 				else if (exit_early != 0)
@@ -432,6 +436,17 @@ void TMesh::SetCenter(Vec3d center)
 {
 	Vec3d currCenter = GetCenter();
 	Translate(center - currCenter);
+}
+
+void TMesh::SetMaterial(Material m)
+{
+	material = m;
+	hasMaterial = true;
+}
+
+Material& TMesh::GetMaterial()
+{
+	return material;
 }
 
 void TMesh::Rotate(Vec3d axisOrigin, Vec3d axisDir, float theta)

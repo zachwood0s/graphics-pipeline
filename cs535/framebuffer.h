@@ -124,7 +124,7 @@ public:
 	/// Sets the pixel values to those found in the provided .tiff file.
 	/// </summary>
 	/// <param name="fname">The .tiff file to load into the frame buffer</param>
-	void LoadTiff(char* fname);
+	bool LoadTiff(const char* fname);
 
 	/// <summary>
 	/// Saves the current pixel values to a .tiff image file.
