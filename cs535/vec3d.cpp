@@ -258,10 +258,5 @@ Vec3d Vec3d::EdgeEquation(Vec3d v1, Vec3d v2, Vec3d v3)
 	edge[1] = -x1 + x0; 
 	edge[2] = -(edge[0] * (x0 + x1) + edge[1] * (y0 + y1)) / 2.0f;
 
-	Vec3d v2p(v3); v2p[2] = 1.0f;
-
-	if (edge * v2p < 0.0f) // ret * v2p = Au + Bv + C
-		edge = edge * -1.0f;
-
 	return edge;
 }
