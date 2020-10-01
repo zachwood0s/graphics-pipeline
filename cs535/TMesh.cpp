@@ -413,6 +413,8 @@ void TMesh::LoadBin(const char *fname)
 	if (yn == 'y') {
 		normals = new Vec3d[vertsN];
 	}
+	normalsN = vertsN;
+	texsN = 0;
 
 	ifs.read(&yn, 1); // texture coordinates 2 floats
 	float *tcs = 0; // don't have texture coordinates for now
@@ -441,6 +443,7 @@ void TMesh::LoadBin(const char *fname)
 	tris = new unsigned int[trisN * 3];
 	normalTris = tris;
 	texTris = tris;
+	texs = new Vec3d[vertsN]();
 	ifs.read((char*)tris, trisN * 3 * sizeof(unsigned int)); // read tiangles
 
 	ifs.close();
@@ -537,8 +540,10 @@ void TMesh::LoadObj(const char * fname)
 
 	vertsN = tempVerts.size();
 	verts = new Vec3d[vertsN];
-	normals = new Vec3d[std::max(1, (int) tempNormals.size())];
+	normalsN = std::max(1, (int) tempNormals.size());
+	normals = new Vec3d[normalsN];
 	colors = new Vec3d[vertsN]; // Not used for this set
+	texsN = std::max(1, (int)tempUvs.size());
 	texs = new Vec3d[std::max(1, (int) tempUvs.size())];
 	trisN = vertexIndices.size() / 3;
 	tris = new unsigned int[trisN * 3]{};
@@ -627,7 +632,10 @@ void TMesh::Rotate(Vec3d axisOrigin, Vec3d axisDir, float theta)
 	for (int vi = 0; vi < vertsN; vi++)
 	{
 		verts[vi] = verts[vi].Rotate(axisOrigin, axisDir, theta);
-		normals[vi] = normals[vi].Rotate(axisOrigin, axisDir, theta);
+	}
+	for (int ni = 0; ni < normalsN; ni++)
+	{
+		normals[ni] = normals[ni].Rotate(axisOrigin, axisDir, theta);
 	}
 }
 

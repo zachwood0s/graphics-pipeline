@@ -43,7 +43,7 @@ void WorldView::Render(Scene & scene)
 		if (!scene.tmeshes[tmi].onFlag)
 			continue;
 
-		scene.tmeshes[tmi].DrawModelSpaceInterpolated(this, scene.light);
+		scene.tmeshes[tmi].DrawModelSpaceInterpolated(scene, this, scene.light);
 	}
 
 	if (showCameraBox || showCameraScreen)

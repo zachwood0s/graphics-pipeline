@@ -42,11 +42,11 @@ Scene::Scene()
 
 	TEX_HANDLE checker = LoadTexture("textures/checker.tiff");
 
-	//tmeshes[0].LoadBin("geometry/teapot57k.bin");
-	tmeshes[0].LoadObj("geometry/lamp.obj");
-	tmeshes[0].ScaleTo(100);
+	//tmeshes[0].LoadBin("geometry/happy4.bin");
+	tmeshes[0].LoadObj("geometry/cube.obj");
+	tmeshes[0].ScaleTo(200);
 	tmeshes[0].SetCenter(Vec3d::ZEROS);
-	tmeshes[0].SetMaterial({ Vec3d(.2f, .2f, .2f), 16, 0.1f, checker});
+	tmeshes[0].SetMaterial({ Vec3d(.2f, .2f, .4f), 8, 0.6f, checker});
 	//tmeshes[0].SetToCube(Vec3d::ZEROS, 100, 0xff00ff00, 0xff0000ff);
 	//tmeshes[0].Rotate(Vec3d::ZEROS, Vec3d::YAXIS, 90.0f);
 

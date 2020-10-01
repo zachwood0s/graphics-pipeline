@@ -401,3 +401,16 @@ void FrameBuffer::Draw3DSegment(Vec3d P1, Vec3d P2, PPC *ppc, Vec3d c1, Vec3d c2
 }
 
 #pragma endregion
+
+
+#pragma region Texture Helpers
+
+unsigned int FrameBuffer::GetTexVal(Vec3d texCoords)
+{
+	int u = (int) (texCoords[0] * w + .5f) % w;
+	int v = (int) (texCoords[1] * h + .5f) % h;
+
+	return Get(u, v);
+}
+
+#pragma endregion

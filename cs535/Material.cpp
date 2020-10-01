@@ -1,7 +1,12 @@
 #include "Material.h"
 
 Material::Material(Vec3d _color, float phong, float spec)
-	: color(_color), phongExponent(phong), kSpecular(spec)
+	: Material(_color, phong, spec, TEX_INVALID)
+{
+}
+
+Material::Material(Vec3d _color, float phong, float spec, TEX_HANDLE tex)
+	: color(_color), phongExponent(phong), kSpecular(spec), texture(tex)
 {
 }
 

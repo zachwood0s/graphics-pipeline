@@ -70,6 +70,8 @@ public:
 	Vec3d *normals;
 	Vec3d *texs;
 	int vertsN;
+	int normalsN;
+	int texsN;
 	unsigned int *tris;
 	unsigned int *normalTris; // needed to support obj fiels
 	unsigned int *texTris;

@@ -9,9 +9,6 @@
 
 class Vec3d;
 
-using TEX_HANDLE = int;
-
-constexpr auto TEX_INVALID = -1;
 
 class Scene {
 public:

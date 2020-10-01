@@ -7,6 +7,9 @@
 #include "vec3d.h"
 #include "ppc.h"
 
+using TEX_HANDLE = int;
+constexpr auto TEX_INVALID = -1;
+
 class FrameBuffer{
 public:
 	unsigned int *pix; // pixel array
@@ -138,5 +141,12 @@ public:
 	void ClearZB();
 
 #pragma endregion
+
+#pragma region Texture Helpers
+
+	unsigned int GetTexVal(Vec3d texCoords);
+
+#pragma endregion
+
 
 };
