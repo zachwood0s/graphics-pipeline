@@ -190,8 +190,7 @@ void TMesh::DrawInterpolated(WorldView * view, Vec3d light)
 
 		// Grab the min and max values for the for the interpolation parameters
 		auto[minZ, maxZ] = zVals.Bounds();
-		auto[c1, c2, c3] = colorM.Columns();
-		AABB colorBounds = AABB::FromPoints({ c1, c2, c3 });
+		AABB colorBounds = AABB::FromMatrixColumns(colorM);
 
 		// This is the same as t = a * left + b * top + c;
 		Vec3d starting(bounds.left + .5f, bounds.top + .5f, 1);
@@ -256,54 +255,45 @@ void TMesh::DrawModelSpaceInterpolated(Scene &scene, WorldView *view, Vec3d ligh
 
 	for (int tri = 0; tri < trisN; tri++)
 	{
-		unsigned int vertexIdx[3] = { tris[3 * tri + 0], tris[3 * tri + 1], tris[3 * tri + 2] };
-		unsigned int normalIdx[3] = { normalTris[3 * tri + 0], normalTris[3 * tri + 1], normalTris[3 * tri + 2] };
-		unsigned int texIdx[3] = { texTris[3 * tri + 0], texTris[3 * tri + 1], texTris[3 * tri + 2] };
+		TriangleMatrices matrices = GetTriangleMatrices(tri, projected);
 
-		// Create the point matrix and color matrix for this triangle
-		Matrix3d pointM(projected[vertexIdx[0]], projected[vertexIdx[1]], projected[vertexIdx[2]]);
-		Matrix3d unProjected(verts[vertexIdx[0]], verts[vertexIdx[1]], verts[vertexIdx[2]]);
-		Matrix3d colorM = Matrix3d::FromColumns(colors[vertexIdx[0]], colors[vertexIdx[1]], colors[vertexIdx[2]]);
-		Matrix3d normalM = Matrix3d::FromColumns(normals[normalIdx[0]], normals[normalIdx[1]], normals[normalIdx[2]]);
-		Matrix3d texM = Matrix3d::FromColumns(texs[texIdx[0]], texs[texIdx[1]], texs[texIdx[2]]);
-		texM[2] = Vec3d::ZEROS;
-
-		if (pointM[0][0] == FLT_MAX || pointM[1][0] == FLT_MAX || pointM[2][0] == FLT_MAX)
+		if (matrices.projected[0][0] == FLT_MAX || matrices.projected[1][0] == FLT_MAX || matrices.projected[2][0] == FLT_MAX)
 		{
 			continue;
 		}
 
 		// Find the bounding box and skip the triangle if its empty
-		Rect bounds = AABB::Clipped(fb->w, fb->h, { pointM[0], pointM[1], pointM[2] }).GetPixelRect();
+		Rect bounds = AABB::Clipped(fb->w, fb->h, { matrices.projected[0], matrices.projected[1], matrices.projected[2] }).GetPixelRect();
 		if (bounds.right < bounds.left || bounds.bottom < bounds.top)
 		{
 			continue;
 		}
 			
 		// Compute the edge equations and interpolation
-		Matrix3d edgeEqns = Matrix3d::EdgeEquations(pointM);
-		Matrix3d modelSpaceInterp = Matrix3d::ModelSpaceInterp(unProjected, view->GetPPC()).Transposed();
-		Matrix3d screenSpaceInterp = Matrix3d::ScreenSpaceInterp(pointM);
-		Vec3d denomParam = modelSpaceInterp * Vec3d::ONES;
-		Vec3d zVals = pointM.GetColumn(2);
+		Matrix3d edgeEqns = Matrix3d::EdgeEquations(matrices.projected);
+		Matrix3d modelSpaceInterp = Matrix3d::ModelSpaceInterp(matrices.unprojected, view->GetPPC());
+		Matrix3d modelSpaceInterpT = modelSpaceInterp.Transposed();
+		Vec3d denomParam = modelSpaceInterpT * Vec3d::ONES;
+		Vec3d zVals = matrices.projected.GetColumn(2);
 
-		// Don't render back facing triangles 
-		float area = ((pointM[0] - pointM[1]) ^ (pointM[1] - pointM[2])).Length() / 2.0f;
+		// Don't render back facing triangles, but flip the edge equations if necessary
+		float area = edgeEqns.GetColumn(2) * Vec3d::ONES;//Matrix3d::TriangleArea(matrices.projected);
+		if (area == 0) continue; // Non-existant triangle
 		if (area < 0)
 		{
 			edgeEqns = edgeEqns * -1;
+			area = -area;
 		}
 
-		// same as MSIM * colors[i] for each row
-		Matrix3d colorCoefs = (modelSpaceInterp * colorM.Transposed()).Transposed();
-		Matrix3d normalCoefs = (modelSpaceInterp * normalM.Transposed()).Transposed();
-		Matrix3d texCoefs = (modelSpaceInterp * texM.Transposed()).Transposed();
-		Vec3d zCoefs = modelSpaceInterp * zVals;
+		// same as MSIM^T * colors[i] for each row
+		Matrix3d colorCoefs = matrices.colors * modelSpaceInterp; 
+		Matrix3d normalCoefs = matrices.normals * modelSpaceInterp; 
+		Matrix3d texCoefs = matrices.textures * modelSpaceInterp; 
+		Vec3d zCoefs = modelSpaceInterpT * zVals;
 
 		// Grab the min and max values for the for the interpolation parameters
 		auto[minZ, maxZ] = zVals.Bounds();
-		auto[c1, c2, c3] = colorM.Columns();
-		AABB colorBounds = AABB::FromPoints({ c1, c2, c3 });
+		AABB colorBounds = AABB::FromMatrixColumns(matrices.colors);
 
 		// This is the same as t = a * left + b * top + c;
 		Vec3d starting(bounds.left + .5f, bounds.top + .5f, 1);
@@ -332,19 +322,7 @@ void TMesh::DrawModelSpaceInterpolated(Scene &scene, WorldView *view, Vec3d ligh
 
 					// Get the material values
 					Material currMat = hasMaterial ? material : Material::DEFAULT(interpE.colors * denom);
-
-					Vec3d baseColor;
-
-					if (currMat.texture != TEX_INVALID)
-					{
-						Vec3d st = interpE.texs * denom;
-						auto tex = scene.textures[currMat.texture];
-						baseColor = Vec3d::FromColor(tex->GetTexVal(st));
-					}
-					else
-					{
-						baseColor = currMat.color;
-					}
+					Vec3d baseColor = currMat.GetColor(scene, interpE.texs * denom);
 
 					// Normal at current pixel
 					Vec3d normalVector = (interpE.normals * denom).Normalized();
@@ -698,4 +676,20 @@ Vec3d* TMesh::ProjectAll(WorldView* view) const
 	}
 
 	return projected;
+}
+
+TriangleMatrices TMesh::GetTriangleMatrices(int tri, Vec3d *projected)
+{
+	unsigned int vertexIdx[3] = { tris[3 * tri + 0], tris[3 * tri + 1], tris[3 * tri + 2] };
+	unsigned int normalIdx[3] = { normalTris[3 * tri + 0], normalTris[3 * tri + 1], normalTris[3 * tri + 2] };
+	unsigned int texIdx[3] = { texTris[3 * tri + 0], texTris[3 * tri + 1], texTris[3 * tri + 2] };
+
+	// Create the point matrix and color matrix for this triangle
+	Matrix3d pointM(projected[vertexIdx[0]], projected[vertexIdx[1]], projected[vertexIdx[2]]);
+	Matrix3d unProjected(verts[vertexIdx[0]], verts[vertexIdx[1]], verts[vertexIdx[2]]);
+	Matrix3d colorM = Matrix3d::FromColumns(colors[vertexIdx[0]], colors[vertexIdx[1]], colors[vertexIdx[2]]);
+	Matrix3d normalM = Matrix3d::FromColumns(normals[normalIdx[0]], normals[normalIdx[1]], normals[normalIdx[2]]);
+	Matrix3d texM = Matrix3d::FromColumns(texs[texIdx[0]], texs[texIdx[1]], texs[texIdx[2]]);
+	texM[2] = Vec3d::ZEROS;
+	return { pointM, unProjected, colorM, normalM, texM };
 }

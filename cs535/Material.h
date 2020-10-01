@@ -3,6 +3,7 @@
 #include "vec3d.h"
 #include "framebuffer.h"
 
+class Scene;
 
 class Material 
 {
@@ -10,6 +11,8 @@ public:
 	static Material DEFAULT(Vec3d color);
 	Material(Vec3d color, float phong, float kSpec);
 	Material(Vec3d color, float phong, float kSpec, TEX_HANDLE texture);
+
+	Vec3d GetColor(Scene &scene, Vec3d point);
 
 	Vec3d color;
 	float phongExponent;

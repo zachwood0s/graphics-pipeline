@@ -160,6 +160,11 @@ Matrix3d Matrix3d::EdgeEquations(Vec3d v1, Vec3d v2, Vec3d v3)
 	return ret;
 }
 
+float Matrix3d::TriangleArea(Matrix3d triangle)
+{
+	return ((triangle[0] - triangle[1]) ^ (triangle[1] - triangle[2])).Length() / 2.0f;
+}
+
 Matrix3d Matrix3d::ScreenSpaceInterp(Matrix3d points)
 {
 	return ScreenSpaceInterp(points[0], points[1], points[2]);

@@ -19,6 +19,12 @@ AABB AABB::FromPoints(std::initializer_list<Vec3d> list)
 	return aabb;
 }
 
+AABB AABB::FromMatrixColumns(Matrix3d m)
+{
+	auto[c1, c2, c3] = m.Columns();
+	return AABB::FromPoints({ c1, c2, c3 });
+}
+
 AABB AABB::Clipped(int w, int h, std::initializer_list<Vec3d> list)
 {
 	AABB aabb = AABB::FromPoints(list);

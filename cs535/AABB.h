@@ -1,6 +1,7 @@
 #pragma once
 
 #include "vec3d.h"
+#include "matrix3d.h"
 
 struct Rect {
 	int left;
@@ -17,6 +18,7 @@ public:
 
 	static AABB Clipped(int w, int h, std::initializer_list<Vec3d> points);
 	static AABB FromPoints(std::initializer_list<Vec3d> points);
+	static AABB FromMatrixColumns(Matrix3d m);
 
 	void AddPoint(Vec3d point);
 	void ClipView(int w, int h);

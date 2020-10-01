@@ -68,5 +68,6 @@ public:
 	static Matrix3d ModelSpaceInterp(Vec3d v1, Vec3d v2, Vec3d v3, PPC *ppc);
 	static Matrix3d EdgeEquations(Vec3d v1, Vec3d v2, Vec3d v3);
 	static Matrix3d EdgeEquations(Matrix3d points);
+	static float TriangleArea(Matrix3d triangle);
 };
 

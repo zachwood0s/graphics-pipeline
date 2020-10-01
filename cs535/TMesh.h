@@ -58,6 +58,16 @@ struct InterpCoefs
 };
 
 
+struct TriangleMatrices
+{
+	Matrix3d projected;
+	Matrix3d unprojected;
+	Matrix3d colors;
+	Matrix3d normals;
+	Matrix3d textures;
+};
+
+
 class TMesh 
 {
 private:
@@ -105,4 +115,5 @@ public:
 
 
 	Vec3d* ProjectAll(WorldView* view) const;
+	TriangleMatrices GetTriangleMatrices(int tri, Vec3d *projected);
 };
