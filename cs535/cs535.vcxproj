@@ -146,6 +146,7 @@
     <ClInclude Include="ppc.h" />
     <ClInclude Include="scene.h" />
     <ClInclude Include="stdafx.h" />
+    <ClInclude Include="Texture.h" />
     <ClInclude Include="TMesh.h" />
     <ClInclude Include="vec3d.h" />
     <ClInclude Include="WorldView.h" />
@@ -160,6 +161,7 @@
     <ClCompile Include="ppc.cpp" />
     <ClCompile Include="scene.cpp" />
     <ClCompile Include="stdafx.cpp" />
+    <ClCompile Include="Texture.cpp" />
     <ClCompile Include="TMesh.cpp" />
     <ClCompile Include="vec3d.cpp" />
     <ClCompile Include="WorldView.cpp" />

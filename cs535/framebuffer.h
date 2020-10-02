@@ -142,11 +142,5 @@ public:
 
 #pragma endregion
 
-#pragma region Texture Helpers
-
-	unsigned int GetTexVal(Vec3d texCoords);
-
-#pragma endregion
-
-
+	Vec3d GetTexVal(Vec3d texCoords);
 };

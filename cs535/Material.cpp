@@ -21,7 +21,7 @@ Vec3d Material::GetColor(Scene &scene, Vec3d point)
 	if (texture != TEX_INVALID)
 	{
 		auto tex = scene.textures[texture];
-		return Vec3d::FromColor(tex->GetTexVal(point));
+		return tex->GetTexVal(point);
 	}
 	else
 	{
