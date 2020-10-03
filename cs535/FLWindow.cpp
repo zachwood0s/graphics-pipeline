@@ -58,14 +58,14 @@ void FLWindow::KeyboardHandle()
 	}
 	case FL_Right: {
 		scene->tmeshes[0].Rotate(Vec3d::ZEROS, Vec3d::YAXIS, 5);
-		ppc->SetPose(ppc->C.Rotate(Vec3d::ZEROS, Vec3d::XAXIS, 5), Vec3d::ZEROS, Vec3d::YAXIS);
+		//ppc->SetPose(ppc->C.Rotate(Vec3d::ZEROS, Vec3d::XAXIS, 5), Vec3d::ZEROS, Vec3d::YAXIS);
 		Fl::check();
 		scene->Render();
 		break;
 	}
 	case FL_Left: {
 		scene->tmeshes[0].Rotate(Vec3d::ZEROS, Vec3d::YAXIS, -5);
-		ppc->SetPose(ppc->C.Rotate(Vec3d::ZEROS, Vec3d::XAXIS, -5), Vec3d::ZEROS, Vec3d::YAXIS);
+		//ppc->SetPose(ppc->C.Rotate(Vec3d::ZEROS, Vec3d::XAXIS, -5), Vec3d::ZEROS, Vec3d::YAXIS);
 		Fl::check();
 		scene->Render();
 		break;

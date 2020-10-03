@@ -14,7 +14,7 @@ public:
 	unsigned int mipH;
 	unsigned int levels;
 
-	void SetAsMipmap(int mipW, int mipH);
+	void SetAsMipmap(int h);
 
 	Vec3d GetTexVal(Vec3d texCoords, Vec3d texDeltas);
 	Vec3d GetTexVal(Vec3d texCoords, int lod);

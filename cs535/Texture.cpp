@@ -5,21 +5,21 @@
 #include "vec3d.h"
 
 
-Texture::Texture(int w, int h) : FrameBuffer(w, h), levels(1)
+Texture::Texture(int w, int h) : FrameBuffer(w, h), levels(0), mipH(h), mipW(w)
 {
 }
 
-void Texture::SetAsMipmap(int _mipW, int _mipH)
+void Texture::SetAsMipmap(int _mipH)
 {	
 	mipH = _mipH;
-	mipW = _mipW;
+	mipW = _mipH;
 	levels = (int) log2(mipW);
 	isMipmap = true;
 }
 
 Vec3d Texture::GetTexVal(Vec3d texCoords, Vec3d texDeltas)
 {
-	float maxDelta = std::max(texDeltas[0] * w, texDeltas[1] * h);
+	float maxDelta = std::max(texDeltas[0] * mipW, texDeltas[1] * mipH);
 
 	// Find the level of detail in both directions
 	float lod = log2(maxDelta) + LOD_BIAS;
@@ -29,15 +29,15 @@ Vec3d Texture::GetTexVal(Vec3d texCoords, Vec3d texDeltas)
 	int lod1 = (int) clamp(lod0 + 1, 0, levels);
 
 	// Trilinear interpolation: interpolate between the levels of detail
-	Vec3d color = Vec3d::Interpolate(GetTexVal(texCoords, lod0), GetTexVal(texCoords, lod1), lod - lod0);
+	Vec3d color = Vec3d::Interpolate(GetTexVal(texCoords, lod0), GetTexVal(texCoords, lod1), clamp(lod - lod0, 0.0f, 1.0f));
 	return color;
 }
 
 Vec3d Texture::GetTexVal(Vec3d texCoords, int lod)
 {
 	// Find the width of the texture at the given level of detail
-	int lodW = pow(2, levels - lod);
-	int lodH = lodW;
+	int lodW = lod == 0 ? mipW : pow(2, levels - lod);
+	int lodH = lod == 0 ? mipH : lodW;
 
 	// If this is the max detail, then there is no offset, otherwise add one width
 	int offsetX = lod == 0 ? 0 : mipW;
@@ -47,6 +47,7 @@ Vec3d Texture::GetTexVal(Vec3d texCoords, int lod)
 
 	float s = fmodf(texCoords[0] * lodW, lodW);
 	float t = fmodf(texCoords[1] * lodH, lodH);
+
 	int s0 = (int) s;
 	int t0 = (int) t;
 	int s1 = (int) clamp((float) (s0 + 1), 0.0f, (float) lodW);

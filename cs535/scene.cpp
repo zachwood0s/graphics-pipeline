@@ -22,7 +22,7 @@ Scene::Scene()
 	float hfov = 55.0f;
 
 	WorldView * world = new WorldView("SW Frame Buffer", u0, v0, w, h, hfov, (int) views.size());
-	//world->GetPPC()->ZoomFocalLength(.5f);
+	world->GetPPC()->ZoomFocalLength(2.0f);
 	world->showCameraBox = false;
 	world->showCameraScreen = false;
 	world->background.SetFromColor(0xFFFFFFFF);
@@ -49,12 +49,13 @@ Scene::Scene()
 	tmeshes[0].ScaleTo(200);
 	tmeshes[0].SetCenter(Vec3d::ZEROS);
 	tmeshes[0].SetMaterial({ Vec3d(.2f, .2f, .4f), 32, 0.8f, head});
-	tmeshes[0].onFlag = false;
+	//tmeshes[0].onFlag = false;
 
 	tmeshes[1].SetToPlane(Vec3d::ZEROS, 2000, 2000);
 	tmeshes[1].SetMaterial({ Vec3d::ZEROS, 32, 0.5f, mountains });
-	tmeshes[1].Rotate(Vec3d::ZEROS, Vec3d::XAXIS, -90.0f);
-	tmeshes[1].Translate(Vec3d(0.0f, -90.0f, -500.0f));
+	//tmeshes[1].Rotate(Vec3d::ZEROS, Vec3d::XAXIS, -90.0f);
+	tmeshes[1].Translate(Vec3d(0.0f, -200.0f, -400.0f));
+	//tmeshes[1].onFlag = false;
 	for (int i = 0; i < tmeshes[1].texsN; i++)
 	{
 		tmeshes[1].texs[i] = tmeshes[1].texs[i] * 2;
@@ -63,7 +64,7 @@ Scene::Scene()
 	//tmeshes[0].SetToCube(Vec3d::ZEROS, 100, 0xff00ff00, 0xff0000ff);
 	//tmeshes[0].Rotate(Vec3d::ZEROS, Vec3d::YAXIS, 90.0f);
 
-	views[0]->GetPPC()->SetPose(Vec3d(0, 50, 200), Vec3d::ZEROS, Vec3d::YAXIS);
+	views[0]->GetPPC()->SetPose(Vec3d(0, 100, 400), Vec3d::ZEROS, Vec3d::YAXIS);
 	light = Vec3d(world->GetPPC()->C);
 //	views[1]->GetPPC()->SetPose(Vec3d(200, 0, -300), Vec3d::ZEROS, Vec3d::YAXIS);
 
@@ -219,7 +220,15 @@ TEX_HANDLE Scene::LoadTexture(const char * filename, bool isMipmap)
 	}
 
 	if (isMipmap)
-		buffer->SetAsMipmap((2 * buffer->w) / 3, buffer->h);
+	{
+		buffer->SetAsMipmap(buffer->h);
+	}
+	else
+	{
+		buffer->mipH = buffer->h;
+		buffer->mipW = buffer->w;
+	}
+
 	
 	textures.push_back(buffer);
 	return (TEX_HANDLE) textures.size() - 1;

@@ -87,7 +87,7 @@ void TMesh::SetToPlane(Vec3d cc, float w, float h)
 	tri++;
 
 
-	normals[0] = ((verts[0] - verts[1]) ^ (verts[0] - verts[2])).Normalized();
+	normals[0] = ((verts[0] - verts[1]) ^ (verts[0] - verts[2])).Normalized() * -1;
 }
 
 
@@ -373,9 +373,6 @@ void TMesh::DrawModelSpaceInterpolated(Scene &scene, WorldView *view, Vec3d ligh
 						continue;
 					}
 
-					
-
-
 					// Get the material values
 					Vec3d texDeltas(texCoefs.GetColumn(0).Length() * denom, texCoefs.GetColumn(1).Length() * denom, 0);
 					Material currMat = hasMaterial ? material : Material::DEFAULT(interpE.colors * denom);
@@ -539,6 +536,7 @@ void TMesh::LoadObj(const char * fname)
 			Vec3d vertex;
 			vertex[2] = 0;
 			fscanf_s(file, "%f %f\n", &vertex[0], &vertex[1]);
+			vertex[1] = 1.0f - vertex[1]; // flip the y uv because we support texture coords with the y flipped
 			tempUvs.push_back(vertex);
 		}
 		else if (strcmp(lineHeader, "vn") == 0)
