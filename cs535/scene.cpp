@@ -37,20 +37,33 @@ Scene::Scene()
 
 	gui->uiw->position(u0, v0 + h + 50);
 
-	tmeshesN = 5;
+	tmeshesN = 2;
 	tmeshes = new TMesh[tmeshesN];
 
-	TEX_HANDLE head = LoadTexture("textures/fox_head_color.tiff");
+	TEX_HANDLE head = LoadTexture("textures/fox_head_color.tiff", false);
+	TEX_HANDLE checker = LoadTexture("textures/checker.tiff", false);
+	TEX_HANDLE mountains = LoadTexture("textures/mountains.tiff", true);
 
 	//tmeshes[0].LoadBin("geometry/happy4.bin");
 	tmeshes[0].LoadObj("geometry/fox.obj");
 	tmeshes[0].ScaleTo(200);
 	tmeshes[0].SetCenter(Vec3d::ZEROS);
 	tmeshes[0].SetMaterial({ Vec3d(.2f, .2f, .4f), 32, 0.8f, head});
+	tmeshes[0].onFlag = false;
+
+	tmeshes[1].SetToPlane(Vec3d::ZEROS, 2000, 2000);
+	tmeshes[1].SetMaterial({ Vec3d::ZEROS, 32, 0.5f, mountains });
+	tmeshes[1].Rotate(Vec3d::ZEROS, Vec3d::XAXIS, -90.0f);
+	tmeshes[1].Translate(Vec3d(0.0f, -90.0f, -500.0f));
+	for (int i = 0; i < tmeshes[1].texsN; i++)
+	{
+		tmeshes[1].texs[i] = tmeshes[1].texs[i] * 2;
+	}
+
 	//tmeshes[0].SetToCube(Vec3d::ZEROS, 100, 0xff00ff00, 0xff0000ff);
 	//tmeshes[0].Rotate(Vec3d::ZEROS, Vec3d::YAXIS, 90.0f);
 
-	views[0]->GetPPC()->SetPose(Vec3d(0, 0, 200), Vec3d::ZEROS, Vec3d::YAXIS);
+	views[0]->GetPPC()->SetPose(Vec3d(0, 50, 200), Vec3d::ZEROS, Vec3d::YAXIS);
 	light = Vec3d(world->GetPPC()->C);
 //	views[1]->GetPPC()->SetPose(Vec3d(200, 0, -300), Vec3d::ZEROS, Vec3d::YAXIS);
 
@@ -196,17 +209,20 @@ void Scene::DBG()
 	}
 }
 
-TEX_HANDLE Scene::LoadTexture(const char * filename)
+TEX_HANDLE Scene::LoadTexture(const char * filename, bool isMipmap)
 {
-	FrameBuffer * buffer = new FrameBuffer(0, 0);
+	Texture * buffer = new Texture(0, 0);
 	if (!buffer->LoadTiff(filename))
 	{
 		delete buffer;
 		return TEX_INVALID;
 	}
+
+	if (isMipmap)
+		buffer->SetAsMipmap((2 * buffer->w) / 3, buffer->h);
 	
 	textures.push_back(buffer);
-	return textures.size() - 1;
+	return (TEX_HANDLE) textures.size() - 1;
 }
 
 

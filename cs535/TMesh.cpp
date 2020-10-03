@@ -4,6 +4,7 @@
 #include <iostream>
 #include <algorithm>
 #include <vector>
+#include <omp.h>
 
 #include "scene.h"
 #include "TMesh.h"
@@ -34,15 +35,66 @@ void TMesh::Allocate(int _vertsN, int _trisN)
 	trisN = _trisN;
 	verts = new Vec3d[vertsN];
 	colors = new Vec3d[vertsN];
-	normals = new Vec3d[vertsN];
-	texs = new Vec3d[trisN * 3];
-	tris = new unsigned int[trisN * 3];
+	normals = new Vec3d[normalsN];
+	texs = new Vec3d[texsN];
+	normalTris = new unsigned int[trisN * 3]{ 0 };
+	texTris = new unsigned int[trisN * 3]{ 0 };
+	tris = new unsigned int[trisN * 3]{ 0 };
+}
+
+#pragma region Preset Geometry
+
+void TMesh::SetToPlane(Vec3d cc, float w, float h)
+{
+	vertsN = 4;
+	trisN = 2;
+	texsN = 4;
+	normalsN = 1;
+	Allocate(vertsN, trisN);
+
+	int vi = 0;
+	verts[vi] = cc + Vec3d(-w / 2.0f, +h / 2.0f, 0);
+	vi++;
+	verts[vi] = cc + Vec3d(-w / 2.0f, -h / 2.0f, 0);
+	vi++;
+	verts[vi] = cc + Vec3d(+w / 2.0f, -h / 2.0f, 0);
+	vi++;
+	verts[vi] = cc + Vec3d(+w / 2.0f, +h / 2.0f, 0);
+
+	int ti = 0;
+	texs[ti] = Vec3d(0.0f, 0.0f, 0.0f);
+	ti++;
+	texs[ti] = Vec3d(0.0f, 1.0f, 0.0f);
+	ti++;
+	texs[ti] = Vec3d(1.0f, 1.0f, 0.0f);
+	ti++;
+	texs[ti] = Vec3d(1.0f, 0.0f, 0.0f);
+
+	int tri = 0;
+	tris[3 * tri + 0] = 0;
+	tris[3 * tri + 1] = 1;
+	tris[3 * tri + 2] = 2;
+	texTris[3 * tri + 0] = 0;
+	texTris[3 * tri + 1] = 1;
+	texTris[3 * tri + 2] = 2;
+	tri++;
+	tris[3 * tri + 0] = 2;
+	tris[3 * tri + 1] = 3;
+	tris[3 * tri + 2] = 0;
+	texTris[3 * tri + 0] = 2;
+	texTris[3 * tri + 1] = 3;
+	texTris[3 * tri + 2] = 0;
+	tri++;
+
+
+	normals[0] = ((verts[0] - verts[1]) ^ (verts[0] - verts[2])).Normalized();
 }
 
 
 void TMesh::SetToCube(Vec3d cc, float sideLength, unsigned int color0, unsigned int color1) 
 {
 	vertsN = 8;
+	texsN = 24;
 	trisN = 6 * 2;
 	Allocate(vertsN, trisN);
 
@@ -119,8 +171,9 @@ void TMesh::SetToCube(Vec3d cc, float sideLength, unsigned int color0, unsigned 
 	tris[3 * tri + 1] = 2;
 	tris[3 * tri + 2] = 1;
 	tri++;
-
 }
+
+#pragma endregion
 
 void TMesh::DrawCubeQuadFaces(FrameBuffer *fb, PPC *ppc, unsigned int color) 
 {
@@ -268,7 +321,7 @@ void TMesh::DrawModelSpaceInterpolated(Scene &scene, WorldView *view, Vec3d ligh
 		{
 			continue;
 		}
-			
+
 		// Compute the edge equations and interpolation
 		Matrix3d edgeEqns = Matrix3d::EdgeEquations(matrices.projected);
 		Matrix3d modelSpaceInterp = Matrix3d::ModelSpaceInterp(matrices.unprojected, view->GetPPC());
@@ -286,9 +339,9 @@ void TMesh::DrawModelSpaceInterpolated(Scene &scene, WorldView *view, Vec3d ligh
 		}
 
 		// same as MSIM^T * colors[i] for each row
-		Matrix3d colorCoefs = matrices.colors * modelSpaceInterp; 
-		Matrix3d normalCoefs = matrices.normals * modelSpaceInterp; 
-		Matrix3d texCoefs = matrices.textures * modelSpaceInterp; 
+		Matrix3d colorCoefs = matrices.colors * modelSpaceInterp;
+		Matrix3d normalCoefs = matrices.normals * modelSpaceInterp;
+		Matrix3d texCoefs = matrices.textures * modelSpaceInterp;
 		Vec3d zCoefs = modelSpaceInterpT * zVals;
 
 		// Grab the min and max values for the for the interpolation parameters
@@ -311,18 +364,22 @@ void TMesh::DrawModelSpaceInterpolated(Scene &scene, WorldView *view, Vec3d ligh
 				if (interpE.edges[0] >= 0 && interpE.edges[1] >= 0 && interpE.edges[2] >= 0)
 				{
 					Vec3d currPix = Vec3d(currPixX + .5f, currPixY + .5f, 1);
+					float denom = 1 / interpE.denom;
 
 					// Clamp the z value so that its valid for this triangle.
-					float denom = 1 / interpE.denom;
 					float currZ = clamp(interpE.zVal * denom, minZ, maxZ);
 					if (fb->Farther(currPixX, currPixY, currZ))
 					{
 						continue;
 					}
 
+					
+
+
 					// Get the material values
+					Vec3d texDeltas(texCoefs.GetColumn(0).Length() * denom, texCoefs.GetColumn(1).Length() * denom, 0);
 					Material currMat = hasMaterial ? material : Material::DEFAULT(interpE.colors * denom);
-					Vec3d baseColor = currMat.GetColor(scene, interpE.texs * denom);
+					Vec3d baseColor = currMat.GetColor(scene, interpE.texs * denom, texDeltas);
 
 					// Normal at current pixel
 					Vec3d normalVector = (interpE.normals * denom).Normalized();
@@ -467,7 +524,7 @@ void TMesh::LoadObj(const char * fname)
 	{
 		char lineHeader[128];
 
-		int res = fscanf_s(file, "%s", lineHeader, sizeof(lineHeader));
+		int res = fscanf_s(file, "%s", lineHeader, (int) sizeof(lineHeader));
 		if (res == EOF)
 			break;
 
@@ -495,7 +552,7 @@ void TMesh::LoadObj(const char * fname)
 			unsigned int vertexIndex[3] = { 1, 1, 1 }, uvIndex[3] = { 1, 1, 1 }, normalIndex[3] = { 1, 1, 1 };
 			char buff[1024] = "";
 
-			fscanf_s(file, "%1024[^\n]\n", buff, sizeof(buff));
+			fscanf_s(file, "%1024[^\n]\n", buff, (int) sizeof(buff));
 			if (!read_poly_indices(buff, vertexIndex, uvIndex, normalIndex))
 			{
 				std::cerr << "File cannot be read because of an unsupported face statement" << endl;
@@ -516,14 +573,14 @@ void TMesh::LoadObj(const char * fname)
 		}
 	}
 
-	vertsN = tempVerts.size();
+	vertsN = (int) tempVerts.size();
 	verts = new Vec3d[vertsN];
 	normalsN = std::max(1, (int) tempNormals.size());
 	normals = new Vec3d[normalsN];
 	colors = new Vec3d[vertsN]; // Not used for this set
 	texsN = std::max(1, (int)tempUvs.size());
 	texs = new Vec3d[std::max(1, (int) tempUvs.size())];
-	trisN = vertexIndices.size() / 3;
+	trisN = (int) vertexIndices.size() / 3;
 	tris = new unsigned int[trisN * 3]{};
 	normalTris = new unsigned int[trisN * 3]{};
 	texTris = new unsigned int[trisN * 3]{};

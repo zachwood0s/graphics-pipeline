@@ -1,5 +1,8 @@
+#include <chrono>
+
 #include "WorldView.h"
 #include "scene.h"
+
 
 
 
@@ -43,7 +46,13 @@ void WorldView::Render(Scene & scene)
 		if (!scene.tmeshes[tmi].onFlag)
 			continue;
 
+		auto t1 = std::chrono::high_resolution_clock::now();
 		scene.tmeshes[tmi].DrawModelSpaceInterpolated(scene, this, scene.light);
+		auto t2 = std::chrono::high_resolution_clock::now();
+		auto duration = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+
+		//std::cout << "Time: "<< duration << std::endl;
+
 	}
 
 	if (showCameraBox || showCameraScreen)

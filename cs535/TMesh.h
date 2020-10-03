@@ -92,6 +92,7 @@ public:
 	TMesh();
 	~TMesh();
 	void SetToCube(Vec3d cc, float sideLength, unsigned int color0, unsigned int color1);
+	void SetToPlane(Vec3d cc, float w, float h);
 	void Allocate(int _vertsN, int _trisN);
 
 	void DrawCubeQuadFaces(FrameBuffer *fb, PPC *ppc, unsigned int color);

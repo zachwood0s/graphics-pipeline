@@ -126,6 +126,8 @@
       <AdditionalIncludeDirectories>externals\tiff-4.0.8\libtiff;externals\glew-2.1.0\include;externals\freeglut-3.0.0\include;externals\Cg\include;externals\fltk-1.3.4-1;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <OpenMPSupport>
+      </OpenMPSupport>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>

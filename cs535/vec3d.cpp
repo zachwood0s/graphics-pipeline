@@ -236,7 +236,7 @@ Vec3d Vec3d::Interpolate(Vec3d p0, Vec3d p1, int currStep, int stepCount)
 
 Vec3d Vec3d::Interpolate(Vec3d p0, Vec3d p1, float t)
 {
-	return p0 + (p1 - p0) * t;
+	return (p0 * (1.0f - t)) + (p1 * t);
 }
 
 Vec3d Vec3d::EdgeEquation(Vec3d v1, Vec3d v2, Vec3d v3)

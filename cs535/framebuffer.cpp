@@ -401,11 +401,3 @@ void FrameBuffer::Draw3DSegment(Vec3d P1, Vec3d P2, PPC *ppc, Vec3d c1, Vec3d c2
 }
 
 #pragma endregion
-
-Vec3d FrameBuffer::GetTexVal(Vec3d texCoords)
-{
-	int s = (int) (texCoords[0] * w + .5f) % w;
-	int t = h - ((int) (texCoords[1] * h + .5f) % h);
-
-	return Vec3d::FromColor(Get(s, t));
-}

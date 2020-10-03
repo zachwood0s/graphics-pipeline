@@ -16,12 +16,12 @@ Material Material::DEFAULT(Vec3d color)
 	return Material(color, 32, 0.5f);
 }
 
-Vec3d Material::GetColor(Scene &scene, Vec3d point)
+Vec3d Material::GetColor(Scene &scene, Vec3d point, Vec3d texDeltas)
 {
 	if (texture != TEX_INVALID)
 	{
 		auto tex = scene.textures[texture];
-		return tex->GetTexVal(point);
+		return tex->GetTexVal(point, texDeltas);
 	}
 	else
 	{

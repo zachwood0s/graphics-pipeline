@@ -142,5 +142,4 @@ public:
 
 #pragma endregion
 
-	Vec3d GetTexVal(Vec3d texCoords);
 };

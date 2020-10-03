@@ -3,7 +3,7 @@
 #include <vector>
 
 #include "gui.h"
-#include "framebuffer.h"
+#include "Texture.h"
 #include "TMesh.h"
 #include "WorldView.h"
 
@@ -15,7 +15,7 @@ public:
 
 	GUI *gui;
 	std::vector<WorldView*> views;
-	std::vector<FrameBuffer*> textures;
+	std::vector<Texture*> textures;
 	TMesh *tmeshes;
 	int tmeshesN;
 	Scene();
@@ -26,7 +26,7 @@ public:
 
 	Vec3d light;
 
-	TEX_HANDLE LoadTexture(const char *);
+	TEX_HANDLE LoadTexture(const char *, bool isMipmap);
 
 	friend void WorldView::Render(Scene &scene);
 
