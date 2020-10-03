@@ -5,6 +5,7 @@
 #include "framebuffer.h"
 #include "WorldView.h"
 #include "Material.h"
+#include "AABB.h"
 
 struct InterpVal
 {
@@ -72,6 +73,7 @@ class TMesh
 {
 private:
 	Material material;
+	Vec3d *projected;
 
 public:
 	int onFlag;
@@ -98,7 +100,8 @@ public:
 	void DrawCubeQuadFaces(FrameBuffer *fb, PPC *ppc, unsigned int color);
 	void DrawWireFrame(WorldView * world, unsigned int color);
 	void DrawInterpolated(WorldView * world, Vec3d light);
-	void DrawModelSpaceInterpolated(Scene & scene, WorldView *world, Vec3d light);
+	void DrawModelSpaceInterpolated(Scene & scene, WorldView *world);
+	void DrawModelSpaceInterpolated(Scene & scene, WorldView *world, Rect renderBounds);
 
 	void LoadBin(const char *fname);
 	void LoadObj(const char *fname);
@@ -115,6 +118,6 @@ public:
 	void ScaleTo(float size);
 
 
-	Vec3d* ProjectAll(WorldView* view) const;
-	TriangleMatrices GetTriangleMatrices(int tri, Vec3d *projected);
+	void ProjectAll(WorldView* view);
+	TriangleMatrices GetTriangleMatrices(int tri) const;
 };

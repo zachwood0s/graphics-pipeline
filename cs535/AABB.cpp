@@ -25,10 +25,10 @@ AABB AABB::FromMatrixColumns(Matrix3d m)
 	return AABB::FromPoints({ c1, c2, c3 });
 }
 
-AABB AABB::Clipped(int w, int h, std::initializer_list<Vec3d> list)
+AABB AABB::Clipped(Rect bounds, std::initializer_list<Vec3d> list)
 {
 	AABB aabb = AABB::FromPoints(list);
-	aabb.ClipView(w, h);
+	aabb.ClipView(bounds);
 	return aabb;
 }
 
@@ -43,12 +43,12 @@ void AABB::AddPoint(Vec3d point)
 	}
 }
 
-void AABB::ClipView(int w, int h)
+void AABB::ClipView(Rect bounds)
 {
-	corners[0][0] = clamp(corners[0][0], 0.0f, (float) w); 
-	corners[0][1] = clamp(corners[0][1], 0.0f, (float) h); 
-	corners[1][0] = clamp(corners[1][0], 0.0f, (float) w); 
-	corners[1][1] = clamp(corners[1][1], 0.0f, (float) h); 
+	corners[0][0] = clamp(corners[0][0], (float) bounds.left, (float) bounds.right); 
+	corners[0][1] = clamp(corners[0][1], (float) bounds.top, (float) bounds.bottom); 
+	corners[1][0] = clamp(corners[1][0], (float) bounds.left, (float) bounds.right); 
+	corners[1][1] = clamp(corners[1][1], (float) bounds.top, (float) bounds.bottom); 
 }
 
 Rect AABB::GetPixelRect() const

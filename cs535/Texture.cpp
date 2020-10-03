@@ -36,14 +36,14 @@ Vec3d Texture::GetTexVal(Vec3d texCoords, Vec3d texDeltas)
 Vec3d Texture::GetTexVal(Vec3d texCoords, int lod)
 {
 	// Find the width of the texture at the given level of detail
-	int lodW = lod == 0 ? mipW : pow(2, levels - lod);
+	int lodW = lod == 0 ? mipW : std::exp2(levels - lod);
 	int lodH = lod == 0 ? mipH : lodW;
 
 	// If this is the max detail, then there is no offset, otherwise add one width
 	int offsetX = lod == 0 ? 0 : mipW;
 
 	// Similar for the y, but if its not max level, sum up powers of 2 to find the starting y position
-	int offsetY = lod == 0 ? 0 : mipH - (pow(2, levels - lod + 1));
+	int offsetY = lod == 0 ? 0 : mipH - (std::exp2(levels - lod + 1));
 
 	float s = fmodf(texCoords[0] * lodW, lodW);
 	float t = fmodf(texCoords[1] * lodH, lodH);

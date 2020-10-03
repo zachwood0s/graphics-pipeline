@@ -48,11 +48,11 @@ Scene::Scene()
 	tmeshes[0].LoadObj("geometry/fox.obj");
 	tmeshes[0].ScaleTo(200);
 	tmeshes[0].SetCenter(Vec3d::ZEROS);
-	tmeshes[0].SetMaterial({ Vec3d(.2f, .2f, .4f), 32, 0.8f, head});
+	tmeshes[0].SetMaterial({ Vec3d(.2f, .2f, .4f), 32, 0.8f, TEX_INVALID});
 	//tmeshes[0].onFlag = false;
 
 	tmeshes[1].SetToPlane(Vec3d::ZEROS, 2000, 2000);
-	tmeshes[1].SetMaterial({ Vec3d::ZEROS, 32, 0.5f, mountains });
+	tmeshes[1].SetMaterial({ Vec3d::ZEROS, 32, 0.5f, TEX_INVALID });
 	//tmeshes[1].Rotate(Vec3d::ZEROS, Vec3d::XAXIS, -90.0f);
 	tmeshes[1].Translate(Vec3d(0.0f, -200.0f, -400.0f));
 	//tmeshes[1].onFlag = false;

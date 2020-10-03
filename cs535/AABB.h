@@ -16,12 +16,12 @@ public:
 	Vec3d corners[2];
 	AABB(Vec3d firstPoint);
 
-	static AABB Clipped(int w, int h, std::initializer_list<Vec3d> points);
+	static AABB Clipped(Rect bounds, std::initializer_list<Vec3d> points);
 	static AABB FromPoints(std::initializer_list<Vec3d> points);
 	static AABB FromMatrixColumns(Matrix3d m);
 
 	void AddPoint(Vec3d point);
-	void ClipView(int w, int h);
+	void ClipView(Rect boudns);
 
 	Rect GetPixelRect() const;
 	Vec3d Min() const;

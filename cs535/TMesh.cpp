@@ -14,18 +14,21 @@
 
 using namespace std;
 
+const int RENDER_CUBE_COUNT = 4; // The number of cubes to render across
+
 TMesh::~TMesh()
 {
-	delete verts;
-	delete colors;
-	delete normals;
-	delete tris;
-	delete texs;
+	delete[] verts;
+	delete[] colors;
+	delete[] normals;
+	delete[] tris;
+	delete[] texs;
+	delete[] projected;
 }
 
-TMesh::TMesh() 
-	: verts(0), vertsN(0), tris(0), trisN(0), colors(0), 
-	  normals(0), onFlag(1), material(Material::DEFAULT(Vec3d::ZEROS)) 
+TMesh::TMesh()
+	: verts(0), vertsN(0), tris(0), trisN(0), colors(0),
+	normals(0), onFlag(1), material(Material::DEFAULT(Vec3d::ZEROS)), projected(nullptr)
 {};
 
 
@@ -206,7 +209,8 @@ void TMesh::DrawWireFrame(WorldView * view, unsigned int color)
 void TMesh::DrawInterpolated(WorldView * view, Vec3d light)
 {
 
-	Vec3d *projected = ProjectAll(view);
+	ProjectAll(view);
+
 	FrameBuffer * fb = view->GetFB();
 
 	for (int tri = 0; tri < trisN; tri++)
@@ -225,7 +229,7 @@ void TMesh::DrawInterpolated(WorldView * view, Vec3d light)
 		}
 
 		// Find the bounding box and skip the triangle if its empty
-		Rect bounds = AABB::Clipped(fb->w, fb->h, { pointM[0], pointM[1], pointM[2] }).GetPixelRect();
+		Rect bounds = AABB::Clipped({ 0, fb->w, 0, fb->h }, { pointM[0], pointM[1], pointM[2] }).GetPixelRect();
 		if (bounds.right < bounds.left || bounds.bottom < bounds.top)
 		{
 			continue;
@@ -301,14 +305,36 @@ void TMesh::DrawInterpolated(WorldView * view, Vec3d light)
 	delete[] projected;
 }
 
-void TMesh::DrawModelSpaceInterpolated(Scene &scene, WorldView *view, Vec3d light)
+/// <summary>
+/// I wanted to try optimizing the triangle mesh rendering so I made it execute in parellel using OpenMP. This 
+/// could probably be improved greatly but for now it works.
+/// </summary>
+void TMesh::DrawModelSpaceInterpolated(Scene &scene, WorldView *view)
 {
-	Vec3d *projected = ProjectAll(view);
+	ProjectAll(view);
+	int w = view->GetFB()->w;
+	int h = view->GetFB()->h;
+	int square = w / RENDER_CUBE_COUNT;
+	int squaresW = std::ceil(w / (float) square);
+	int squaresH = std::ceil(h / (float) square);
+
+	#pragma omp parallel for
+	for (int xy = 0; xy < squaresW*squaresH; ++xy) {
+		int i = xy / squaresW;
+		int j = xy % squaresW;
+		//parallelize this code here
+		int left = j * square ; int top = i * square;
+		DrawModelSpaceInterpolated(scene, view, { left, left + square, top, top + square });
+	}
+}
+
+void TMesh::DrawModelSpaceInterpolated(Scene &scene, WorldView *view, Rect renderBounds)
+{
 	FrameBuffer * fb = view->GetFB();
 
 	for (int tri = 0; tri < trisN; tri++)
 	{
-		TriangleMatrices matrices = GetTriangleMatrices(tri, projected);
+		TriangleMatrices matrices = GetTriangleMatrices(tri);
 
 		if (matrices.projected[0][0] == FLT_MAX || matrices.projected[1][0] == FLT_MAX || matrices.projected[2][0] == FLT_MAX)
 		{
@@ -316,7 +342,7 @@ void TMesh::DrawModelSpaceInterpolated(Scene &scene, WorldView *view, Vec3d ligh
 		}
 
 		// Find the bounding box and skip the triangle if its empty
-		Rect bounds = AABB::Clipped(fb->w, fb->h, { matrices.projected[0], matrices.projected[1], matrices.projected[2] }).GetPixelRect();
+		Rect bounds = AABB::Clipped(renderBounds, { matrices.projected[0], matrices.projected[1], matrices.projected[2] }).GetPixelRect();
 		if (bounds.right < bounds.left || bounds.bottom < bounds.top)
 		{
 			continue;
@@ -385,7 +411,7 @@ void TMesh::DrawModelSpaceInterpolated(Scene &scene, WorldView *view, Vec3d ligh
 					Vec3d currP = view->GetPPC()->UnProject(Vec3d(currPix[0], currPix[1], currZ));
 
 					// Light vector
-					Vec3d lightVector = (light - currP).Normalized();
+					Vec3d lightVector = (scene.light - currP).Normalized();
 					Vec3d viewDir = (view->GetPPC()->C - currP).Normalized();
 					Vec3d currColor = baseColor.Light(lightVector, normalVector, viewDir, view->kAmbient, currMat);
 
@@ -406,7 +432,6 @@ void TMesh::DrawModelSpaceInterpolated(Scene &scene, WorldView *view, Vec3d ligh
 
 	}
 
-	delete[] projected;
 }
 
 #pragma region Loading from file
@@ -711,9 +736,12 @@ void TMesh::ScaleTo(float size)
 	SetCenter(currCenter);
 }
 
-Vec3d* TMesh::ProjectAll(WorldView* view) const
+void TMesh::ProjectAll(WorldView* view) 
 {
-	Vec3d *projected = new Vec3d[vertsN];
+	if (projected == nullptr)
+	{
+		projected = new Vec3d[vertsN];
+	}
 
 	// Project all of the verticies
 	for (int i = 0; i < vertsN; i++)
@@ -729,11 +757,9 @@ Vec3d* TMesh::ProjectAll(WorldView* view) const
 			projected[i].Clamp(64);
 		}
 	}
-
-	return projected;
 }
 
-TriangleMatrices TMesh::GetTriangleMatrices(int tri, Vec3d *projected)
+TriangleMatrices TMesh::GetTriangleMatrices(int tri) const
 {
 	unsigned int vertexIdx[3] = { tris[3 * tri + 0], tris[3 * tri + 1], tris[3 * tri + 2] };
 	unsigned int normalIdx[3] = { normalTris[3 * tri + 0], normalTris[3 * tri + 1], normalTris[3 * tri + 2] };
