@@ -37,34 +37,43 @@ Scene::Scene()
 
 	gui->uiw->position(u0, v0 + h + 50);
 
-	tmeshesN = 2;
+	tmeshesN = 6;
 	tmeshes = new TMesh[tmeshesN];
 
 	TEX_HANDLE head = LoadTexture("textures/fox_head_color.tiff", false);
-	TEX_HANDLE checker = LoadTexture("textures/checkerTransparent.tiff", false);
+	TEX_HANDLE checker = LoadTexture("textures/checker.tiff", false);
 	TEX_HANDLE mountains = LoadTexture("textures/mountains.tiff", true);
+	TEX_HANDLE hole = LoadTexture("textures/hole.tiff", false);
 
-	//tmeshes[0].LoadBin("geometry/happy4.bin");
+	// Fox
 	tmeshes[0].LoadObj("geometry/fox.obj");
 	tmeshes[0].ScaleTo(200);
 	tmeshes[0].SetCenter(Vec3d::ZEROS);
-	tmeshes[0].SetMaterial({ Vec3d(.2f, .2f, .4f), 32, 0.8f, TEX_INVALID});
-	//tmeshes[0].onFlag = false;
+	tmeshes[0].SetMaterial({ Vec3d::XAXIS, 32, 0.8f, TEX_INVALID});
 
-	tmeshes[1].SetToPlane(Vec3d::ZEROS, 2000, 2000);
-	tmeshes[1].SetMaterial({ Vec3d::ZEROS, 32, 0.5f, TEX_INVALID });
-	//tmeshes[1].Rotate(Vec3d::ZEROS, Vec3d::XAXIS, -90.0f);
-	tmeshes[1].Translate(Vec3d(0.0f, -200.0f, -100.0f));
-	//tmeshes[1].onFlag = false;
-	for (int i = 0; i < tmeshes[1].texsN; i++)
+	// Cube
+	tmeshes[1].LoadObj("geometry/cube.obj");
+	tmeshes[1].ScaleTo(200);
+	tmeshes[1].SetCenter(Vec3d::ZEROS);
+	tmeshes[1].SetMaterial({ Vec3d::ZEROS, 32, 0.5f, hole });
+	tmeshes[1].onFlag = false;
+
+	// Bottom plane
+	tmeshes[2].SetToPlane(Vec3d::ZEROS, 500, 500);
+	tmeshes[2].Rotate(Vec3d::ZEROS, Vec3d::XAXIS, 90);
+	tmeshes[2].Translate(Vec3d(0, -70.0f, 0));
+	tmeshes[2].SetMaterial({ Vec3d::ZEROS, 32, 0.5f, checker });
+	// Repeat the checker pattern
+	for (int i = 0; i < tmeshes[2].texsN; i++)
 	{
-		tmeshes[1].texs[i] = tmeshes[1].texs[i] * 200;
+		tmeshes[2].texs[i] = tmeshes[2].texs[i] * 10;
 	}
+	
 
 	//tmeshes[0].SetToCube(Vec3d::ZEROS, 100, 0xff00ff00, 0xff0000ff);
 	//tmeshes[0].Rotate(Vec3d::ZEROS, Vec3d::YAXIS, 90.0f);
 
-	views[0]->GetPPC()->SetPose(Vec3d(0, 100, 400), Vec3d::ZEROS, Vec3d::YAXIS);
+	views[0]->GetPPC()->SetPose(Vec3d(100, 200, 1000), Vec3d::ZEROS, Vec3d::YAXIS);
 	light = Vec3d(world->GetPPC()->C);
 //	views[1]->GetPPC()->SetPose(Vec3d(200, 0, -300), Vec3d::ZEROS, Vec3d::YAXIS);
 

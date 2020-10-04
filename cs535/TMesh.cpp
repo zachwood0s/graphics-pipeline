@@ -318,7 +318,6 @@ void TMesh::DrawModelSpaceInterpolated(Scene &scene, WorldView *view)
 	int squaresW = std::ceil(w / (float) square);
 	int squaresH = std::ceil(h / (float) square);
 
-	#pragma omp parallel for
 	for (int xy = 0; xy < squaresW*squaresH; ++xy) {
 		int i = xy / squaresW;
 		int j = xy % squaresW;
@@ -729,7 +728,7 @@ void TMesh::ScaleTo(float size)
 	Vec3d currCenter = GetCenter();
 
 	// Move centroid to origin
-	SetCenter(Vec3d(0, 0, 0));
+	SetCenter(Vec3d::ZEROS);
 
 	// Get the length of the current diagonal
 	float currSize = (aabb.Max() - aabb.Min()).Length();
