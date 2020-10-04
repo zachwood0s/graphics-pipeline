@@ -41,7 +41,7 @@ Scene::Scene()
 	tmeshes = new TMesh[tmeshesN];
 
 	TEX_HANDLE head = LoadTexture("textures/fox_head_color.tiff", false);
-	TEX_HANDLE checker = LoadTexture("textures/checker.tiff", false);
+	TEX_HANDLE checker = LoadTexture("textures/checkerTransparent.tiff", false);
 	TEX_HANDLE mountains = LoadTexture("textures/mountains.tiff", true);
 
 	//tmeshes[0].LoadBin("geometry/happy4.bin");
@@ -54,11 +54,11 @@ Scene::Scene()
 	tmeshes[1].SetToPlane(Vec3d::ZEROS, 2000, 2000);
 	tmeshes[1].SetMaterial({ Vec3d::ZEROS, 32, 0.5f, TEX_INVALID });
 	//tmeshes[1].Rotate(Vec3d::ZEROS, Vec3d::XAXIS, -90.0f);
-	tmeshes[1].Translate(Vec3d(0.0f, -200.0f, -400.0f));
+	tmeshes[1].Translate(Vec3d(0.0f, -200.0f, -100.0f));
 	//tmeshes[1].onFlag = false;
 	for (int i = 0; i < tmeshes[1].texsN; i++)
 	{
-		tmeshes[1].texs[i] = tmeshes[1].texs[i] * 2;
+		tmeshes[1].texs[i] = tmeshes[1].texs[i] * 200;
 	}
 
 	//tmeshes[0].SetToCube(Vec3d::ZEROS, 100, 0xff00ff00, 0xff0000ff);

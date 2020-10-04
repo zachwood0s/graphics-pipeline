@@ -16,7 +16,7 @@ Material Material::DEFAULT(Vec3d color)
 	return Material(color, 32, 0.5f);
 }
 
-Vec3d Material::GetColor(Scene &scene, Vec3d point, Vec3d texDeltas)
+std::tuple<Vec3d, float> Material::GetColor(Scene &scene, Vec3d point, Vec3d texDeltas)
 {
 	if (texture != TEX_INVALID)
 	{
@@ -25,6 +25,6 @@ Vec3d Material::GetColor(Scene &scene, Vec3d point, Vec3d texDeltas)
 	}
 	else
 	{
-		return color;
+		return { color, 1.0f };
 	}
 }

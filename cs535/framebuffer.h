@@ -22,6 +22,7 @@ public:
 	void SetBGR(unsigned int bgr);
 	void Set(int u, int v, unsigned int color);
 	void Set(int u, int v, unsigned int color, int id);
+	void SetZ(int u, int v, float zVal);
 
 #pragma region Drawing Functions
 
@@ -97,7 +98,7 @@ public:
 	/// <param name="v">The screen y coordinate to check</param>
 	/// <param name="currz">The z-value to check with</param>
 	/// <returns>0 if z-value is closer than the one in the z-buffer, 1 if farther.</returns>
-	int Farther(int u, int v, float currz);
+	int Farther(int u, int v, float currz, bool setBuffer=true);
 
 	/// <summary>
 	/// Gets the z-buffer value for a given point

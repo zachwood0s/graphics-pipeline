@@ -17,7 +17,7 @@ void Texture::SetAsMipmap(int _mipH)
 	isMipmap = true;
 }
 
-Vec3d Texture::GetTexVal(Vec3d texCoords, Vec3d texDeltas)
+std::tuple<Vec3d, float> Texture::GetTexVal(Vec3d texCoords, Vec3d texDeltas)
 {
 	float maxDelta = std::max(texDeltas[0] * mipW, texDeltas[1] * mipH);
 
@@ -29,11 +29,13 @@ Vec3d Texture::GetTexVal(Vec3d texCoords, Vec3d texDeltas)
 	int lod1 = (int) clamp(lod0 + 1, 0, levels);
 
 	// Trilinear interpolation: interpolate between the levels of detail
-	Vec3d color = Vec3d::Interpolate(GetTexVal(texCoords, lod0), GetTexVal(texCoords, lod1), clamp(lod - lod0, 0.0f, 1.0f));
-	return color;
+	auto[c1, a1] = GetTexVal(texCoords, lod0);
+	auto[c2, a2] = GetTexVal(texCoords, lod1);
+	Vec3d color = Vec3d::Interpolate(c1, c2, clamp(lod - lod0, 0.0f, 1.0f));
+	return { color, std::min({a1, a2}) };
 }
 
-Vec3d Texture::GetTexVal(Vec3d texCoords, int lod)
+std::tuple<Vec3d, float> Texture::GetTexVal(Vec3d texCoords, int lod)
 {
 	// Find the width of the texture at the given level of detail
 	int lodW = lod == 0 ? mipW : std::exp2(levels - lod);
@@ -50,22 +52,36 @@ Vec3d Texture::GetTexVal(Vec3d texCoords, int lod)
 
 	int s0 = (int) s;
 	int t0 = (int) t;
-	int s1 = (int) clamp((float) (s0 + 1), 0.0f, (float) lodW);
-	int t1 = (int) clamp((float) (t0 + 1), 0.0f, (float) lodH);
+	int s1 = (int) clamp((float) (s0 + 1), 0.0f, (float) lodW - 1);
+	int t1 = (int) clamp((float) (t0 + 1), 0.0f, (float) lodH - 1);
 
 	// Interpolate the s val for both top and bottom
-	Vec3d c1 = Vec3d::Interpolate(GetTexVal(s0 + offsetX, t0 + offsetY), GetTexVal(s1 + offsetX, t0 + offsetY), s - s0);
-	Vec3d c2 = Vec3d::Interpolate(GetTexVal(s0 + offsetX, t1 + offsetY), GetTexVal(s1 + offsetX, t1 + offsetY), s - s0);
+	auto[cTL, alphaTL] = GetTexVal(s0 + offsetX, t0 + offsetY);
+	auto[cTR, alphaTR] = GetTexVal(s1 + offsetX, t0 + offsetY);
+	auto[cBL, alphaBL] = GetTexVal(s0 + offsetX, t1 + offsetY);
+	auto[cBR, alphaBR] = GetTexVal(s1 + offsetX, t1 + offsetY);
+	
+	Vec3d c1 = Vec3d::Interpolate(cTL, cTR, s - s0);
+	Vec3d c2 = Vec3d::Interpolate(cBL, cBR, s - s0);
 
 	// Interpolate the t val acroos top and bottom
-	Vec3d color = Vec3d::Interpolate(c1, c2, t - t0);
+	auto colorAlpha = Vec3d::Interpolate(c1, c2, t - t0);
 
-	return color;
+	return { colorAlpha, std::min({ alphaTL, alphaTR, alphaBL, alphaBR }) };
 }
 
-Vec3d Texture::GetTexVal(int s, int t)
+std::tuple<Vec3d, float> Texture::GetTexVal(int s, int t)
 {
-	return Vec3d::FromColor(Get(s, t));
+	return { Vec3d::FromColor(Get(s, t)), GetTexAlpha(s, t) };
+}
+
+float Texture::GetTexAlpha(int s, int t)
+{
+	unsigned int color = Get(s, t);
+	unsigned char *rgba = (unsigned char*)&color;
+
+	return rgba[3] / 255.0f;
+
 }
 
 

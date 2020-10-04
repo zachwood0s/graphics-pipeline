@@ -356,8 +356,8 @@ void TMesh::DrawModelSpaceInterpolated(Scene &scene, WorldView *view, Rect rende
 		Vec3d zVals = matrices.projected.GetColumn(2);
 
 		// Don't render back facing triangles, but flip the edge equations if necessary
-		float area = edgeEqns.GetColumn(2) * Vec3d::ONES;//Matrix3d::TriangleArea(matrices.projected);
-		if (area == 0) continue; // Non-existant triangle
+		float area = edgeEqns.GetColumn(2) * Vec3d::ONES;
+		if (area == 0 || fabsf(area) < 0.001f) continue; // Non-existant triangle
 		if (area < 0)
 		{
 			edgeEqns = edgeEqns * -1;
@@ -394,7 +394,7 @@ void TMesh::DrawModelSpaceInterpolated(Scene &scene, WorldView *view, Rect rende
 
 					// Clamp the z value so that its valid for this triangle.
 					float currZ = clamp(interpE.zVal * denom, minZ, maxZ);
-					if (fb->Farther(currPixX, currPixY, currZ))
+					if (fb->Farther(currPixX, currPixY, currZ, false))
 					{
 						continue;
 					}
@@ -402,7 +402,16 @@ void TMesh::DrawModelSpaceInterpolated(Scene &scene, WorldView *view, Rect rende
 					// Get the material values
 					Vec3d texDeltas(texCoefs.GetColumn(0).Length() * denom, texCoefs.GetColumn(1).Length() * denom, 0);
 					Material currMat = hasMaterial ? material : Material::DEFAULT(interpE.colors * denom);
-					Vec3d baseColor = currMat.GetColor(scene, interpE.texs * denom, texDeltas);
+					auto[baseColor, alpha] = currMat.GetColor(scene, interpE.texs * denom, texDeltas);
+
+					// Check to see if this pixel should even be rendered
+					if (FP_ZERO == fpclassify(alpha))
+					{
+						continue; 
+					}
+
+					// If it should, update the z-buffer to reflect that
+					fb->SetZ(currPixX, currPixY, currZ);
 
 					// Normal at current pixel
 					Vec3d normalVector = (interpE.normals * denom).Normalized();

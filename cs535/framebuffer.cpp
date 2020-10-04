@@ -48,6 +48,12 @@ void FrameBuffer::Set(int u, int v, unsigned int color, int id)
 	ids[idx] = id;
 }
 
+void FrameBuffer::SetZ(int u, int v, float z)
+{
+	int idx = (h - 1 - v)*w + u;
+	zb[idx] = z;
+}
+
 unsigned int FrameBuffer::Get(int u, int v)
 {
 	if (u < 0 || v < 0 || u > w - 1 || v > h - 1)
@@ -175,14 +181,17 @@ void FrameBuffer::SaveAsTiff(const char *fname)
 	TIFFClose(out);
 }
 
-int FrameBuffer::Farther(int u, int v, float currz) 
+int FrameBuffer::Farther(int u, int v, float currz, bool setBuffer) 
 {
 	if (u < 0 || u > w - 1 || v < 0 || v > h - 1)
 		return 1;
 	int uv = (h - 1 - v)*w + u;
 	if (currz < zb[uv])
 		return 1;
-	zb[uv] = currz;
+
+	if(setBuffer)
+		zb[uv] = currz;
+
 	return 0;
 }
 

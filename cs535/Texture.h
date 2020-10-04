@@ -16,8 +16,9 @@ public:
 
 	void SetAsMipmap(int h);
 
-	Vec3d GetTexVal(Vec3d texCoords, Vec3d texDeltas);
-	Vec3d GetTexVal(Vec3d texCoords, int lod);
-	Vec3d GetTexVal(int s, int t);
+	std::tuple<Vec3d, float> GetTexVal(Vec3d texCoords, Vec3d texDeltas);
+	std::tuple<Vec3d, float> GetTexVal(Vec3d texCoords, int lod);
+	std::tuple<Vec3d, float> GetTexVal(int s, int t);
+	float GetTexAlpha(int s, int t);
 };
 

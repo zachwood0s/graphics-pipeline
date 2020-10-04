@@ -12,7 +12,7 @@ public:
 	Material(Vec3d color, float phong, float kSpec);
 	Material(Vec3d color, float phong, float kSpec, TEX_HANDLE texture);
 
-	Vec3d GetColor(Scene &scene, Vec3d point, Vec3d texDeltas);
+	std::tuple<Vec3d, float> GetColor(Scene &scene, Vec3d point, Vec3d texDeltas);
 
 	Vec3d color;
 	float phongExponent;

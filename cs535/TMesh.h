@@ -75,6 +75,9 @@ private:
 	Material material;
 	Vec3d *projected;
 
+	// This is private because the vertices need to be projected before entering this function
+	void DrawModelSpaceInterpolated(Scene & scene, WorldView *world, Rect renderBounds);
+
 public:
 	int onFlag;
 	Vec3d *verts;
@@ -101,7 +104,6 @@ public:
 	void DrawWireFrame(WorldView * world, unsigned int color);
 	void DrawInterpolated(WorldView * world, Vec3d light);
 	void DrawModelSpaceInterpolated(Scene & scene, WorldView *world);
-	void DrawModelSpaceInterpolated(Scene & scene, WorldView *world, Rect renderBounds);
 
 	void LoadBin(const char *fname);
 	void LoadObj(const char *fname);
