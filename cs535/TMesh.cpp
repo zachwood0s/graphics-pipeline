@@ -318,6 +318,7 @@ void TMesh::DrawModelSpaceInterpolated(Scene &scene, WorldView *view)
 	int squaresW = std::ceil(w / (float) square);
 	int squaresH = std::ceil(h / (float) square);
 
+	#pragma omp parallel for
 	for (int xy = 0; xy < squaresW*squaresH; ++xy) {
 		int i = xy / squaresW;
 		int j = xy % squaresW;

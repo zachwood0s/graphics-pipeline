@@ -51,7 +51,7 @@ void WorldView::Render(Scene & scene)
 		auto t2 = std::chrono::high_resolution_clock::now();
 		auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
 
-		std::cout << "Time: "<< duration << std::endl;
+		//std::cout << "Time: "<< duration << std::endl;
 
 	}
 

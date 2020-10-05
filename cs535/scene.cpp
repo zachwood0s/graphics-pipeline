@@ -22,10 +22,10 @@ Scene::Scene()
 	float hfov = 55.0f;
 
 	WorldView * world = new WorldView("SW Frame Buffer", u0, v0, w, h, hfov, (int) views.size());
-	world->GetPPC()->ZoomFocalLength(2.0f);
 	world->showCameraBox = false;
 	world->showCameraScreen = false;
 	world->background.SetFromColor(0xFFFFFFFF);
+	world->kAmbient = .2f;
 
 	views.push_back(world);
 
@@ -44,36 +44,56 @@ Scene::Scene()
 	TEX_HANDLE checker = LoadTexture("textures/checker.tiff", false);
 	TEX_HANDLE mountains = LoadTexture("textures/mountains.tiff", true);
 	TEX_HANDLE hole = LoadTexture("textures/hole.tiff", false);
+	TEX_HANDLE crate = LoadTexture("textures/crate.tiff", false);
+	TEX_HANDLE mirror = LoadTexture("textures/mirror.tiff", false);
 
 	// Fox
 	tmeshes[0].LoadObj("geometry/fox.obj");
-	tmeshes[0].ScaleTo(200);
-	tmeshes[0].SetCenter(Vec3d::ZEROS);
-	tmeshes[0].SetMaterial({ Vec3d::XAXIS, 32, 0.8f, TEX_INVALID});
+	tmeshes[0].ScaleTo(100);
+	tmeshes[0].SetCenter(Vec3d(3.0f, 0, 0));
+	tmeshes[0].SetMaterial({ Vec3d::XAXIS, 32, 0.8f, head});
 
 	// Cube
 	tmeshes[1].LoadObj("geometry/cube.obj");
-	tmeshes[1].ScaleTo(200);
+	tmeshes[1].ScaleTo(120);
 	tmeshes[1].SetCenter(Vec3d::ZEROS);
-	tmeshes[1].SetMaterial({ Vec3d::ZEROS, 32, 0.5f, hole });
-	tmeshes[1].onFlag = false;
+	tmeshes[1].SetMaterial({ Vec3d::ZEROS, 32, 0.1f, hole });
+
+	// left cube
+	tmeshes[2].LoadObj("geometry/cube.obj");
+	tmeshes[2].ScaleTo(60);
+	tmeshes[2].SetCenter(Vec3d(-80, 0, 0));
+	tmeshes[2].SetMaterial({ Vec3d::ZEROS, 32, 0.1f, crate });
 
 	// Bottom plane
-	tmeshes[2].SetToPlane(Vec3d::ZEROS, 500, 500);
-	tmeshes[2].Rotate(Vec3d::ZEROS, Vec3d::XAXIS, 90);
-	tmeshes[2].Translate(Vec3d(0, -70.0f, 0));
-	tmeshes[2].SetMaterial({ Vec3d::ZEROS, 32, 0.5f, checker });
+	tmeshes[3].LoadObj("geometry/cube.obj");
+	tmeshes[3].ScaleTo(60);
+	tmeshes[3].SetCenter(Vec3d(80, 0, 0));
+	tmeshes[3].SetMaterial({ Vec3d::ZEROS, 32, 0.9f, mirror });
+
+	// Back plane
+	tmeshes[4].LoadObj("geometry/plane.obj");
+	tmeshes[4].ScaleTo(100);
+	tmeshes[4].SetCenter(Vec3d(0, -40.0f, 0.0f));
+	tmeshes[4].SetMaterial({ Vec3d::ZEROS, 8, 0.5f, checker });
+
 	// Repeat the checker pattern
-	for (int i = 0; i < tmeshes[2].texsN; i++)
+	for (int i = 0; i < tmeshes[4].texsN; i++)
 	{
-		tmeshes[2].texs[i] = tmeshes[2].texs[i] * 10;
+		tmeshes[4].texs[i] = tmeshes[4].texs[i] * 6;
 	}
+
+	// Bottom plane
+	tmeshes[5].LoadObj("geometry/cube.obj");
+	tmeshes[5].ScaleTo(60);
+	tmeshes[5].SetCenter(Vec3d(0, 0, -80));
+	tmeshes[5].SetMaterial({ Vec3d::ZEROS, 32, 0.5f, mountains });
 	
 
 	//tmeshes[0].SetToCube(Vec3d::ZEROS, 100, 0xff00ff00, 0xff0000ff);
 	//tmeshes[0].Rotate(Vec3d::ZEROS, Vec3d::YAXIS, 90.0f);
 
-	views[0]->GetPPC()->SetPose(Vec3d(100, 200, 1000), Vec3d::ZEROS, Vec3d::YAXIS);
+	views[0]->GetPPC()->SetPose(Vec3d(0, 20, 200), Vec3d::ZEROS, Vec3d::YAXIS);
 	light = Vec3d(world->GetPPC()->C);
 //	views[1]->GetPPC()->SetPose(Vec3d(200, 0, -300), Vec3d::ZEROS, Vec3d::YAXIS);
 
@@ -111,16 +131,39 @@ void Scene::Render()
 
 void Scene::DBG() 
 {
-
 	PPC * ppc = views[0]->GetPPC();
-
 	{
-		for (int i = 0; i < 720; i++)
+		PPC * ppc1 = new PPC(*ppc);
+		PPC * ppc2 = new PPC(*ppc);
+		Vec3d p2 = Vec3d(200, 20, 0);
+		Vec3d p3 = Vec3d(0, 20, -200);
+		ppc2->SetPose(p2, Vec3d::ZEROS, Vec3d::YAXIS);
+		char fname[25] = "";
+
+		int stepsN = 300;
+		for (int i = 0; i < stepsN/2; i++)
 		{
-			light = light.Rotate(Vec3d::ZEROS, Vec3d::YAXIS, 1);
+			sprintf_s(fname, "frames/frame%d.tiff", i);
+			views[0]->GetFB()->SaveAsTiff(fname);
+			light = light.Rotate(Vec3d::ZEROS, Vec3d::YAXIS, -3.0f);
+			ppc->Interpolate(ppc1, ppc2, i, stepsN/2);
 			Render();
 			Fl::check();
 		}
+
+		ppc1->SetPose(p3, Vec3d::ZEROS, Vec3d::YAXIS);
+
+		for (int i = 0; i < stepsN/2; i++)
+		{
+			sprintf_s(fname, "frames/frame%d.tiff", i + stepsN/2);
+			views[0]->GetFB()->SaveAsTiff(fname);
+			light = light.Rotate(Vec3d::ZEROS, Vec3d::YAXIS, -3.0f);
+			ppc->Interpolate(ppc2, ppc1, i, stepsN/2);
+			Render();
+			Fl::check();
+		}
+
+
 		return;
 	}
 
