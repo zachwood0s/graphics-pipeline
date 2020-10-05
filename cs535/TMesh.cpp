@@ -519,7 +519,7 @@ void TMesh::LoadBin(const char *fname)
 
 }
 
-static int read_poly_indices(const char *line, unsigned int (&_vi)[3], unsigned int (&_ti)[3], unsigned int (&_ni)[3])
+static int ReadPolyIndices(const char *line, unsigned int (&_vi)[3], unsigned int (&_ti)[3], unsigned int (&_ni)[3])
 {
 
 	/* Parse a face vertex specification from the given line. */
@@ -585,7 +585,7 @@ void TMesh::LoadObj(const char * fname)
 			char buff[1024] = "";
 
 			fscanf_s(file, "%1024[^\n]\n", buff, (int) sizeof(buff));
-			if (!read_poly_indices(buff, vertexIndex, uvIndex, normalIndex))
+			if (!ReadPolyIndices(buff, vertexIndex, uvIndex, normalIndex))
 			{
 				std::cerr << "File cannot be read because of an unsupported face statement" << endl;
 				fclose(file);
