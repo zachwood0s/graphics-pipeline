@@ -1,10 +1,14 @@
 #pragma once
+#include <functional>
+#include <vector>
 
 #include "ppc.h"
 #include "framebuffer.h"
 #include "FLWindow.h"
 
 class Scene;
+
+using Shader = std::function<Vec3d(Scene, InterpVal)>;
 
 class WorldView
 {
@@ -22,6 +26,8 @@ public:
 	Vec3d colorCameraBox;
 	Vec3d colorCameraPoint;
 	Vec3d background;
+
+	std::vector<Shader> shaders;
 
 	/// <summary>
 	/// Creates a world view with a window attached to it.

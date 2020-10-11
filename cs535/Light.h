@@ -6,11 +6,11 @@
 class Light
 {
 private:
-	WorldView * shadowMap;
 	Vec3d center;
 
 public:
-	const float SHADOW_EPS = 0.01f;
+	WorldView * shadowMap;
+	static constexpr float SHADOW_EPS = 0.04f;
 	Light(Vec3d center, int shadowResX, int shadowResY, float fov);
 	~Light();
 

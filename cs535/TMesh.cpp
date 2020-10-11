@@ -276,7 +276,7 @@ void TMesh::DrawModelSpaceInterpolated(Scene &scene, WorldView *view, Rect rende
 					float denom = 1 / interpE.denom;
 
 					// Clamp the z value so that its valid for this triangle.
-					float currZ = interpE.zVal * interpE.denom;
+					float currZ = 1 / (interpE.zVal * denom);
 					if (fb->Farther(currPixX, currPixY, currZ, false))
 					{
 						continue;
@@ -300,16 +300,6 @@ void TMesh::DrawModelSpaceInterpolated(Scene &scene, WorldView *view, Rect rende
 					// 3D surface point at current pixel
 					Vec3d currP = view->GetPPC()->UnProject(Vec3d(currPixX, currPixY, currZ));
 
-					if (currPixX == 150 && currPixY == 300 && view->id != -1)
-					{
-						cout << currP << endl;
-					}
-					if (currPixX == 156 && currPixY == 347 && view->id == -1)
-					{
-						cout << currP << endl;
-					}
-
-
 					if (!disableLighting)
 					{
 						// Normal at current pixel
@@ -322,10 +312,20 @@ void TMesh::DrawModelSpaceInterpolated(Scene &scene, WorldView *view, Rect rende
 							if (!light->IsInShadow(currP))
 								currColor = light->LightPixel(currP, currColor, normalVector, viewDir, view->kAmbient, currMat);
 							else
+								// Temporary before I figure out how to handle multiple lights
 								currColor = baseColor * view->kAmbient;
-								//currColor = Vec3d::ZEROS;
-							//else
-								//currColor = Vec3d::ONES;
+						}
+
+						for (auto projector : scene.projectors)
+						{
+							if (!projector->IsInShadow(currP))
+							{
+								Vec3d newColor;
+								if (projector->GetColorAt3dPoint(scene, currP, newColor))
+								{
+									currColor = newColor;
+								}
+							}
 						}
 					}
 					else

@@ -9,6 +9,7 @@ Light::Light(Vec3d _center, int shadowResX, int shadowResY, float fov) : center(
 {
 	
 	shadowMap->GetPPC()->SetPose(center, Vec3d::ZEROS, Vec3d::YAXIS);
+	shadowMap->showCameraScreen = false;
 }
 
 Light::~Light()
@@ -34,13 +35,13 @@ bool Light::IsInShadow(Vec3d point)
 
 	Vec3d projected;
 
-	if (!ppc->Project(point, projected, false))
+	if (!ppc->Project(point, projected))
 		return false;
 
 	if (projected[0] < 0 || projected[1] < 0 || projected[0] > fb->w || projected[1] > fb->h)
 		return false;
 
-	return fb->Farther((int)projected[0], (int)projected[1], projected[2] - SHADOW_EPS, false);
+	return fb->Farther((int)projected[0], (int)projected[1], projected[2] + SHADOW_EPS, false);
 
 }
 

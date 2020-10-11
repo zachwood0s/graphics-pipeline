@@ -7,6 +7,7 @@
 #include "TMesh.h"
 #include "WorldView.h"
 #include "Light.h"
+#include "Projector.h"
 
 class Vec3d;
 
@@ -26,6 +27,7 @@ public:
 	void Render();
 
 	std::vector<Light*> lights;
+	std::vector<Projector*> projectors;
 
 	TEX_HANDLE LoadTexture(const char *, bool isMipmap);
 
