@@ -18,163 +18,47 @@ const int RENDER_CUBE_COUNT = 4; // The number of cubes to render across
 
 TMesh::~TMesh()
 {
-	delete[] verts;
-	delete[] colors;
-	delete[] normals;
-	delete[] tris;
-	delete[] texs;
-	delete[] projected;
 }
 
 TMesh::TMesh()
-	: verts(0), vertsN(0), tris(0), trisN(0), colors(0),
-	normals(0), onFlag(1), material(Material::DEFAULT(Vec3d::ZEROS)), projected(nullptr)
+	: onFlag(1), material(Material::DEFAULT(Vec3d::ZEROS))
 {};
 
 
-void TMesh::Allocate(int _vertsN, int _trisN) 
-{
-	vertsN = _vertsN;
-	trisN = _trisN;
-	verts = new Vec3d[vertsN];
-	colors = new Vec3d[vertsN];
-	normals = new Vec3d[normalsN];
-	texs = new Vec3d[texsN];
-	normalTris = new unsigned int[trisN * 3]{ 0 };
-	texTris = new unsigned int[trisN * 3]{ 0 };
-	tris = new unsigned int[trisN * 3]{ 0 };
-}
 
 #pragma region Preset Geometry
 
 void TMesh::SetToPlane(Vec3d cc, float w, float h)
 {
-	vertsN = 4;
-	trisN = 2;
-	texsN = 4;
-	normalsN = 1;
-	Allocate(vertsN, trisN);
 
-	int vi = 0;
-	verts[vi] = cc + Vec3d(-w / 2.0f, +h / 2.0f, 0);
-	vi++;
-	verts[vi] = cc + Vec3d(-w / 2.0f, -h / 2.0f, 0);
-	vi++;
-	verts[vi] = cc + Vec3d(+w / 2.0f, -h / 2.0f, 0);
-	vi++;
-	verts[vi] = cc + Vec3d(+w / 2.0f, +h / 2.0f, 0);
+	verts.push_back(cc + Vec3d(-w / 2.0f, +h / 2.0f, 0));
+	verts.push_back(cc + Vec3d(-w / 2.0f, -h / 2.0f, 0));
+	verts.push_back(cc + Vec3d(+w / 2.0f, -h / 2.0f, 0));
+	verts.push_back(cc + Vec3d(+w / 2.0f, +h / 2.0f, 0));
 
-	int ti = 0;
-	texs[ti] = Vec3d(0.0f, 0.0f, 0.0f);
-	ti++;
-	texs[ti] = Vec3d(0.0f, 1.0f, 0.0f);
-	ti++;
-	texs[ti] = Vec3d(1.0f, 1.0f, 0.0f);
-	ti++;
-	texs[ti] = Vec3d(1.0f, 0.0f, 0.0f);
+	texs.push_back(Vec3d(0.0f, 0.0f, 0.0f));
+	texs.push_back(Vec3d(0.0f, 1.0f, 0.0f));
+	texs.push_back(Vec3d(1.0f, 1.0f, 0.0f));
+	texs.push_back(Vec3d(1.0f, 0.0f, 0.0f));
 
-	int tri = 0;
-	tris[3 * tri + 0] = 0;
-	tris[3 * tri + 1] = 1;
-	tris[3 * tri + 2] = 2;
-	texTris[3 * tri + 0] = 0;
-	texTris[3 * tri + 1] = 1;
-	texTris[3 * tri + 2] = 2;
-	tri++;
-	tris[3 * tri + 0] = 2;
-	tris[3 * tri + 1] = 3;
-	tris[3 * tri + 2] = 0;
-	texTris[3 * tri + 0] = 2;
-	texTris[3 * tri + 1] = 3;
-	texTris[3 * tri + 2] = 0;
-	tri++;
+	tris.push_back(0);
+	tris.push_back(1);
+	tris.push_back(2);
+	texTris.push_back(0);
+	texTris.push_back(1);
+	texTris.push_back(2);
+
+	tris.push_back(2);
+	tris.push_back(3);
+	tris.push_back(0);
+	texTris.push_back(2);
+	texTris.push_back(3);
+	texTris.push_back(0);
 
 
-	normals[0] = ((verts[0] - verts[1]) ^ (verts[0] - verts[2])).Normalized() * -1;
+	normals.push_back(((verts[0] - verts[1]) ^ (verts[0] - verts[2])).Normalized() * -1);
 }
 
-
-void TMesh::SetToCube(Vec3d cc, float sideLength, unsigned int color0, unsigned int color1) 
-{
-	vertsN = 8;
-	texsN = 24;
-	trisN = 6 * 2;
-	Allocate(vertsN, trisN);
-
-	for (int vi = 0; vi < 4; vi++) {
-		colors[vi].SetFromColor(color0);
-		colors[vi+4].SetFromColor(color1);
-	}
-
-	int vi = 0;
-	verts[vi] = cc + Vec3d(-sideLength / 2.0f, +sideLength / 2.0f, +sideLength / 2.0f);
-	vi++;
-	verts[vi] = cc + Vec3d(-sideLength / 2.0f, -sideLength / 2.0f, +sideLength / 2.0f);
-	vi++;
-	verts[vi] = cc + Vec3d(+sideLength / 2.0f, -sideLength / 2.0f, +sideLength / 2.0f);
-	vi++;
-	verts[vi] = cc + Vec3d(+sideLength / 2.0f, +sideLength / 2.0f, +sideLength / 2.0f);
-	vi++;
-
-	verts[vi] = verts[vi - 4] + Vec3d(0.0f, 0.0f, -sideLength);
-	vi++;
-	verts[vi] = verts[vi - 4] + Vec3d(0.0f, 0.0f, -sideLength);
-	vi++;
-	verts[vi] = verts[vi - 4] + Vec3d(0.0f, 0.0f, -sideLength);
-	vi++;
-	verts[vi] = verts[vi - 4] + Vec3d(0.0f, 0.0f, -sideLength);
-	vi++;
-
-	int tri = 0;
-	tris[3 * tri + 0] = 0;
-	tris[3 * tri + 1] = 1;
-	tris[3 * tri + 2] = 2;
-	tri++;
-	tris[3 * tri + 0] = 2;
-	tris[3 * tri + 1] = 3;
-	tris[3 * tri + 2] = 0;
-	tri++;
-	tris[3 * tri + 0] = 3;
-	tris[3 * tri + 1] = 2;
-	tris[3 * tri + 2] = 6;
-	tri++;
-	tris[3 * tri + 0] = 6;
-	tris[3 * tri + 1] = 7;
-	tris[3 * tri + 2] = 3;
-	tri++;
-	tris[3 * tri + 0] = 7;
-	tris[3 * tri + 1] = 6;
-	tris[3 * tri + 2] = 5;
-	tri++;
-	tris[3 * tri + 0] = 5;
-	tris[3 * tri + 1] = 4;
-	tris[3 * tri + 2] = 7;
-	tri++;
-	tris[3 * tri + 0] = 4;
-	tris[3 * tri + 1] = 5;
-	tris[3 * tri + 2] = 1;
-	tri++;
-	tris[3 * tri + 0] = 1;
-	tris[3 * tri + 1] = 0;
-	tris[3 * tri + 2] = 4;
-	tri++;
-	tris[3 * tri + 0] = 4;
-	tris[3 * tri + 1] = 0;
-	tris[3 * tri + 2] = 3;
-	tri++;
-	tris[3 * tri + 0] = 3;
-	tris[3 * tri + 1] = 7;
-	tris[3 * tri + 2] = 4;
-	tri++;
-	tris[3 * tri + 0] = 1;
-	tris[3 * tri + 1] = 5;
-	tris[3 * tri + 2] = 6;
-	tri++;
-	tris[3 * tri + 0] = 6;
-	tris[3 * tri + 1] = 2;
-	tris[3 * tri + 2] = 1;
-	tri++;
-}
 
 #pragma endregion
 
@@ -192,7 +76,7 @@ void TMesh::DrawCubeQuadFaces(FrameBuffer *fb, PPC *ppc, unsigned int color)
 
 void TMesh::DrawWireFrame(WorldView * view, unsigned int color) 
 {
-	for (int tri = 0; tri < trisN; tri++) {
+	for (int tri = 0; tri < tris.size() / 3; tri++) {
 		Vec3d V0 = verts[tris[3 * tri + 0]];
 		Vec3d V1 = verts[tris[3 * tri + 1]];
 		Vec3d V2 = verts[tris[3 * tri + 2]];
@@ -206,52 +90,57 @@ void TMesh::DrawWireFrame(WorldView * view, unsigned int color)
 
 }
 
-void TMesh::DrawInterpolated(WorldView * view, Vec3d light)
+void TMesh::DrawInterpolated(Scene &scene, WorldView * view)
 {
 
 	ProjectAll(view);
 
 	FrameBuffer * fb = view->GetFB();
 
-	for (int tri = 0; tri < trisN; tri++)
+	for (int tri = 0; tri < tris.size() / 3; tri++)
 	{
-		unsigned int vertexIdx[3] = { tris[3 * tri + 0], tris[3 * tri + 1], tris[3 * tri + 2] };
-		unsigned int normalIdx[3] = { normalTris[3 * tri + 0], normalTris[3 * tri + 1], normalTris[3 * tri + 2] };
+		TriangleMatrices matrices = GetTriangleMatrices(tri);
+
+		//unsigned int vertexIdx[3] = { tris[3 * tri + 0], tris[3 * tri + 1], tris[3 * tri + 2] };
+		//unsigned int normalIdx[3] = { normalTris[3 * tri + 0], normalTris[3 * tri + 1], normalTris[3 * tri + 2] };
 
 		// Create the point matrix and color matrix for this triangle
-		Matrix3d pointM(projected[vertexIdx[0]], projected[vertexIdx[1]], projected[vertexIdx[2]]);
-		Matrix3d colorM = Matrix3d::FromColumns(colors[vertexIdx[0]], colors[vertexIdx[1]], colors[vertexIdx[2]]);
-		Matrix3d normalM = Matrix3d::FromColumns(normals[normalIdx[0]], normals[normalIdx[1]], normals[normalIdx[2]]);
+		//Matrix3d pointM(projected[vertexIdx[0]], projected[vertexIdx[1]], projected[vertexIdx[2]]);
+		//Matrix3d colorM = Matrix3d::FromColumns(colors[vertexIdx[0]], colors[vertexIdx[1]], colors[vertexIdx[2]]);
+		//Matrix3d normalM = Matrix3d::FromColumns(normals[normalIdx[0]], normals[normalIdx[1]], normals[normalIdx[2]]);
 
-		if (pointM[0][0] == FLT_MAX || pointM[1][0] == FLT_MAX || pointM[2][0] == FLT_MAX)
+		if(!matrices.projected.IsValid())
+		//if (pointM[0][0] == FLT_MAX || pointM[1][0] == FLT_MAX || pointM[2][0] == FLT_MAX)
 		{
 			continue;
 		}
 
 		// Find the bounding box and skip the triangle if its empty
-		Rect bounds = AABB::Clipped({ 0, fb->w, 0, fb->h }, { pointM[0], pointM[1], pointM[2] }).GetPixelRect();
+		//Rect bounds = AABB::Clipped({ 0, fb->w, 0, fb->h }, { pointM[0], pointM[1], pointM[2] }).GetPixelRect();
+		Rect bounds = AABB::Clipped({ 0, fb->w, 0, fb->h }, { matrices.projected[0], matrices.projected[1], matrices.projected[2] }).GetPixelRect();
 		if (bounds.right < bounds.left || bounds.bottom < bounds.top)
 		{
 			continue;
 		}
 			
 		// Compute the edge equations and interpolation
-		Matrix3d edgeEqns = Matrix3d::EdgeEquations(pointM);
-		Matrix3d screenSpaceInterp = Matrix3d::ScreenSpaceInterp(pointM);
-		Vec3d zVals = pointM.GetColumn(2);
+		Matrix3d edgeEqns = Matrix3d::EdgeEquations(matrices.projected);
+		Matrix3d screenSpaceInterp = Matrix3d::ScreenSpaceInterp(matrices.projected);
+		Vec3d zVals = matrices.projected.GetColumn(2);
 
 		// same as SSIM * colors[i] for each row
-		Matrix3d colorCoefs = (screenSpaceInterp * colorM.Transposed()).Transposed();
-		Matrix3d normalCoefs = (screenSpaceInterp * normalM.Transposed()).Transposed();
+		Matrix3d colorCoefs = (screenSpaceInterp * matrices.projected.Transposed()).Transposed();
+		Matrix3d normalCoefs = (screenSpaceInterp * matrices.normals.Transposed()).Transposed();
+		Matrix3d texCoefs = (screenSpaceInterp * matrices.textures.Transposed()).Transposed();
 		Vec3d zCoefs = screenSpaceInterp * zVals;
 
 		// Grab the min and max values for the for the interpolation parameters
 		auto[minZ, maxZ] = zVals.Bounds();
-		AABB colorBounds = AABB::FromMatrixColumns(colorM);
+		AABB colorBounds = AABB::FromMatrixColumns(matrices.colors);
 
 		// This is the same as t = a * left + b * top + c;
 		Vec3d starting(bounds.left + .5f, bounds.top + .5f, 1);
-		InterpCoefs coefs(edgeEqns, colorCoefs, normalCoefs, normalCoefs, zCoefs, Vec3d::ZEROS);
+		InterpCoefs coefs(edgeEqns, colorCoefs, normalCoefs, texCoefs, zCoefs, Vec3d::ZEROS);
 		InterpVal interpT = coefs.Start(starting);
 
 		for (int currPixY = bounds.top; currPixY <= bounds.bottom; currPixY++, interpT = coefs.StepIdx(interpT, 1))
@@ -273,7 +162,9 @@ void TMesh::DrawInterpolated(WorldView * view, Vec3d light)
 					}
 
 					// Get the material values
+					Vec3d texDeltas(texCoefs.GetColumn(0).Length(), texCoefs.GetColumn(1).Length(), 0);
 					Material currMat = hasMaterial ? material : Material::DEFAULT(interpE.colors);
+					auto[baseColor, alpha] = currMat.GetColor(scene, interpE.texs, texDeltas);
 
 					// Normal at current pixel
 					Vec3d currPix = Vec3d(currPixX + .5f, currPixY + .5f, 1);
@@ -283,9 +174,13 @@ void TMesh::DrawInterpolated(WorldView * view, Vec3d light)
 					Vec3d currP = view->GetPPC()->UnProject(Vec3d(currPix[0], currPix[1], currZ));
 
 					// Light vector
-					Vec3d lightVector = (light - currP).Normalized();
+					Vec3d currColor = baseColor;
 					Vec3d viewDir = (view->GetPPC()->C - currP).Normalized();
-					Vec3d currColor = currMat.color.Light(lightVector, normalVector, viewDir, view->kAmbient, currMat);
+
+					for (auto light : scene.lights)
+					{
+						currColor = light->LightPixel(currP, currColor, normalVector, viewDir, view->kAmbient, currMat);
+					}
 
 					// Clamp each color to somewhere in their starting range.
 					// This handles errors for colors outside the given color range.
@@ -301,17 +196,15 @@ void TMesh::DrawInterpolated(WorldView * view, Vec3d light)
 			}
 		}
 	}
-
-	delete[] projected;
 }
 
 /// <summary>
 /// I wanted to try optimizing the triangle mesh rendering so I made it execute in parellel using OpenMP. This 
 /// could probably be improved greatly but for now it works.
 /// </summary>
-void TMesh::DrawModelSpaceInterpolated(Scene &scene, WorldView *view)
+void TMesh::DrawModelSpaceInterpolated(Scene &scene, WorldView *view, bool disableLighting)
 {
-	ProjectAll(view);
+	ProjectAll(view, false);
 	int w = view->GetFB()->w;
 	int h = view->GetFB()->h;
 	int square = w / RENDER_CUBE_COUNT;
@@ -324,19 +217,19 @@ void TMesh::DrawModelSpaceInterpolated(Scene &scene, WorldView *view)
 		int j = xy % squaresW;
 		//parallelize this code here
 		int left = j * square ; int top = i * square;
-		DrawModelSpaceInterpolated(scene, view, { left, left + square, top, top + square });
+		DrawModelSpaceInterpolated(scene, view, { left, left + square, top, top + square }, disableLighting);
 	}
 }
 
-void TMesh::DrawModelSpaceInterpolated(Scene &scene, WorldView *view, Rect renderBounds)
+void TMesh::DrawModelSpaceInterpolated(Scene &scene, WorldView *view, Rect renderBounds, bool disableLighting)
 {
 	FrameBuffer * fb = view->GetFB();
 
-	for (int tri = 0; tri < trisN; tri++)
+	for (int tri = 0; tri < tris.size() / 3; tri++)
 	{
 		TriangleMatrices matrices = GetTriangleMatrices(tri);
 
-		if (matrices.projected[0][0] == FLT_MAX || matrices.projected[1][0] == FLT_MAX || matrices.projected[2][0] == FLT_MAX)
+		if(!matrices.projected.IsValid())
 		{
 			continue;
 		}
@@ -355,15 +248,6 @@ void TMesh::DrawModelSpaceInterpolated(Scene &scene, WorldView *view, Rect rende
 		Vec3d denomParam = modelSpaceInterpT * Vec3d::ONES;
 		Vec3d zVals = matrices.projected.GetColumn(2);
 
-		// Don't render back facing triangles, but flip the edge equations if necessary
-		float area = edgeEqns.GetColumn(2) * Vec3d::ONES;
-		if (area == 0 || fabsf(area) < 0.001f) continue; // Non-existant triangle
-		if (area < 0)
-		{
-			edgeEqns = edgeEqns * -1;
-			area = -area;
-		}
-
 		// same as MSIM^T * colors[i] for each row
 		Matrix3d colorCoefs = matrices.colors * modelSpaceInterp;
 		Matrix3d normalCoefs = matrices.normals * modelSpaceInterp;
@@ -371,7 +255,6 @@ void TMesh::DrawModelSpaceInterpolated(Scene &scene, WorldView *view, Rect rende
 		Vec3d zCoefs = modelSpaceInterpT * zVals;
 
 		// Grab the min and max values for the for the interpolation parameters
-		auto[minZ, maxZ] = zVals.Bounds();
 		AABB colorBounds = AABB::FromMatrixColumns(matrices.colors);
 
 		// This is the same as t = a * left + b * top + c;
@@ -389,11 +272,11 @@ void TMesh::DrawModelSpaceInterpolated(Scene &scene, WorldView *view, Rect rende
 			{
 				if (interpE.edges[0] >= 0 && interpE.edges[1] >= 0 && interpE.edges[2] >= 0)
 				{
-					Vec3d currPix = Vec3d(currPixX + .5f, currPixY + .5f, 1);
+					//Vec3d currPix = Vec3d(currPixX + .5f, currPixY + .5f, 1);
 					float denom = 1 / interpE.denom;
 
 					// Clamp the z value so that its valid for this triangle.
-					float currZ = clamp(interpE.zVal * denom, minZ, maxZ);
+					float currZ = interpE.zVal * interpE.denom;
 					if (fb->Farther(currPixX, currPixY, currZ, false))
 					{
 						continue;
@@ -412,17 +295,45 @@ void TMesh::DrawModelSpaceInterpolated(Scene &scene, WorldView *view, Rect rende
 
 					// If it should, update the z-buffer to reflect that
 					fb->SetZ(currPixX, currPixY, currZ);
-
-					// Normal at current pixel
-					Vec3d normalVector = (interpE.normals * denom).Normalized();
+					Vec3d currColor = baseColor;
 
 					// 3D surface point at current pixel
-					Vec3d currP = view->GetPPC()->UnProject(Vec3d(currPix[0], currPix[1], currZ));
+					Vec3d currP = view->GetPPC()->UnProject(Vec3d(currPixX, currPixY, currZ));
 
-					// Light vector
-					Vec3d lightVector = (scene.light - currP).Normalized();
-					Vec3d viewDir = (view->GetPPC()->C - currP).Normalized();
-					Vec3d currColor = baseColor.Light(lightVector, normalVector, viewDir, view->kAmbient, currMat);
+					if (currPixX == 150 && currPixY == 300 && view->id != -1)
+					{
+						cout << currP << endl;
+					}
+					if (currPixX == 156 && currPixY == 347 && view->id == -1)
+					{
+						cout << currP << endl;
+					}
+
+
+					if (!disableLighting)
+					{
+						// Normal at current pixel
+						Vec3d normalVector = (interpE.normals * denom).Normalized();
+
+						// Light vector
+						Vec3d viewDir = (view->GetPPC()->C - currP).Normalized();
+						for (auto light : scene.lights)
+						{
+							if (!light->IsInShadow(currP))
+								currColor = light->LightPixel(currP, currColor, normalVector, viewDir, view->kAmbient, currMat);
+							else
+								currColor = baseColor * view->kAmbient;
+								//currColor = Vec3d::ZEROS;
+							//else
+								//currColor = Vec3d::ONES;
+						}
+					}
+					else
+					{
+						// Show a depth map
+						float val = 1 - 1 / (1 + currZ / 5);
+						currColor = Vec3d(val, val, val);
+					}
 
 					// Clamp each color to somewhere in their starting range.
 					// This handles errors for colors outside the given color range.
@@ -447,6 +358,7 @@ void TMesh::DrawModelSpaceInterpolated(Scene &scene, WorldView *view, Rect rende
 
 void TMesh::LoadBin(const char *fname) 
 {
+	/*
 	ifstream ifs(fname, ios::binary);
 	if (ifs.fail()) {
 		cerr << "INFO: cannot open file: " << fname << endl;
@@ -516,7 +428,7 @@ void TMesh::LoadBin(const char *fname)
 
 	std::cerr << "INFO: loaded " << vertsN << " verts, " << trisN << " tris from " << endl << "      " << fname << endl;
 	std::cerr << "      xyz " << ((colors) ? "rgb " : "") << ((normals) ? "nxnynz " : "") << ((tcs) ? "tcstct " : "") << endl;
-
+	*/
 }
 
 static int ReadPolyIndices(const char *line, unsigned int (&_vi)[3], unsigned int (&_ti)[3], unsigned int (&_ni)[3])
@@ -549,6 +461,13 @@ void TMesh::LoadObj(const char * fname)
 
 	std::vector<unsigned int> vertexIndices, uvIndices, normalIndices;
 	std::vector<Vec3d> tempVerts, tempUvs, tempNormals;
+	verts.clear();
+	normals.clear();
+	texs.clear();
+	tris.clear();
+	texTris.clear();
+	normalTris.clear();
+	
 
 
 	while (1)
@@ -563,7 +482,7 @@ void TMesh::LoadObj(const char * fname)
 		{
 			Vec3d vertex;
 			fscanf_s(file, "%f %f %f\n", &vertex[0], &vertex[1], &vertex[2]);
-			tempVerts.push_back(vertex);
+			verts.push_back(vertex);
 		}
 		else if (strcmp(lineHeader, "vt") == 0)
 		{
@@ -571,13 +490,13 @@ void TMesh::LoadObj(const char * fname)
 			vertex[2] = 0;
 			fscanf_s(file, "%f %f\n", &vertex[0], &vertex[1]);
 			vertex[1] = 1.0f - vertex[1]; // flip the y uv because we support texture coords with the y flipped
-			tempUvs.push_back(vertex);
+			texs.push_back(vertex);
 		}
 		else if (strcmp(lineHeader, "vn") == 0)
 		{
 			Vec3d vertex;
 			fscanf_s(file, "%f %f %f\n", &vertex[0], &vertex[1], &vertex[2]);
-			tempNormals.push_back(vertex);
+			normals.push_back(vertex);
 		}
 		else if (strcmp(lineHeader, "f") == 0)
 		{
@@ -593,69 +512,24 @@ void TMesh::LoadObj(const char * fname)
 				return;
 			}
 			
-			vertexIndices.push_back(vertexIndex[0] - 1);
-			vertexIndices.push_back(vertexIndex[1] - 1);
-			vertexIndices.push_back(vertexIndex[2] - 1);
-			uvIndices.push_back(uvIndex[0] - 1);
-			uvIndices.push_back(uvIndex[1] - 1);
-			uvIndices.push_back(uvIndex[2] - 1);
-			normalIndices.push_back(normalIndex[0] - 1);
-			normalIndices.push_back(normalIndex[1] - 1);
-			normalIndices.push_back(normalIndex[2] - 1);
+			tris.push_back(vertexIndex[0] - 1);
+			tris.push_back(vertexIndex[1] - 1);
+			tris.push_back(vertexIndex[2] - 1);
+			texTris.push_back(uvIndex[0] - 1);
+			texTris.push_back(uvIndex[1] - 1);
+			texTris.push_back(uvIndex[2] - 1);
+			normalTris.push_back(normalIndex[0] - 1);
+			normalTris.push_back(normalIndex[1] - 1);
+			normalTris.push_back(normalIndex[2] - 1);
 		}
 	}
+	colors.resize(verts.size());
 
-	vertsN = (int) tempVerts.size();
-	verts = new Vec3d[vertsN];
-	normalsN = std::max(1, (int) tempNormals.size());
-	normals = new Vec3d[normalsN];
-	colors = new Vec3d[vertsN]; // Not used for this set
-	texsN = std::max(1, (int)tempUvs.size());
-	texs = new Vec3d[std::max(1, (int) tempUvs.size())];
-	trisN = (int) vertexIndices.size() / 3;
-	tris = new unsigned int[trisN * 3]{};
-	normalTris = new unsigned int[trisN * 3]{};
-	texTris = new unsigned int[trisN * 3]{};
-
-	std::fill_n(tris, trisN * 3, 0);
-	std::fill_n(normalTris, trisN * 3, 0);
-	std::fill_n(texTris, trisN * 3, 0);
-
-	for (int i = 0; i < tempVerts.size(); i++)
-	{
-		verts[i] = tempVerts[i];
-	}
-
-	for (int i = 0; i < tempNormals.size(); i++)
-	{
-		normals[i] = tempNormals[i];
-	}
-
-	for (int i = 0; i < tempUvs.size(); i++)
-	{
-		texs[i] = tempUvs[i];
-	}
-
-	for (int i = 0; i < vertexIndices.size(); i++)
-	{
-		tris[i] = vertexIndices[i];
-	}
-
-	for (int i = 0; i < uvIndices.size(); i++)
-	{
-		texTris[i] = uvIndices[i];
-	}
-
-	for (int i = 0; i < normalIndices.size(); i++)
-	{
-		normalTris[i] = normalIndices[i];
-	}
 
 	fclose(file);
 	file = nullptr;
 
-	cerr << "INFO: loaded " << vertsN << " verts, " << trisN << " tris from " << endl << "      " << fname << endl;
-	cerr << "      xyz " << ((colors) ? "rgb " : "") << ((normals) ? "nxnynz " : "") << ((texs) ? "tcstct " : "") << endl;
+	cerr << "INFO: loaded " << verts.size() << " verts, " << tris.size() << " tris from " << endl << "      " << fname << endl;
 }
 
 #pragma endregion
@@ -663,16 +537,16 @@ void TMesh::LoadObj(const char * fname)
 Vec3d TMesh::GetCenter() const
 {
 	Vec3d ret(0.0f, 0.0f, 0.0f);
-	for (int vi = 0; vi < vertsN; vi++) {
+	for (int vi = 0; vi < verts.size(); vi++) {
 		ret = ret + verts[vi];
 	}
-	ret = ret / (float)vertsN;
+	ret = ret / (float)verts.size();
 	return ret;
 }
 
 void TMesh::Translate(Vec3d tv) 
 {
-	for (int vi = 0; vi < vertsN; vi++) {
+	for (int vi = 0; vi < verts.size(); vi++) {
 		verts[vi] = verts[vi] + tv;
 	}
 }
@@ -696,11 +570,11 @@ Material& TMesh::GetMaterial()
 
 void TMesh::Rotate(Vec3d axisOrigin, Vec3d axisDir, float theta)
 {
-	for (int vi = 0; vi < vertsN; vi++)
+	for (int vi = 0; vi < verts.size(); vi++)
 	{
 		verts[vi] = verts[vi].Rotate(axisOrigin, axisDir, theta);
 	}
-	for (int ni = 0; ni < normalsN; ni++)
+	for (int ni = 0; ni < normals.size(); ni++)
 	{
 		normals[ni] = normals[ni].Rotate(axisOrigin, axisDir, theta);
 	}
@@ -708,14 +582,14 @@ void TMesh::Rotate(Vec3d axisOrigin, Vec3d axisDir, float theta)
 
 AABB TMesh::GetAABB() const
 {
-	if (vertsN == 0)
+	if (verts.empty())
 	{
 		return AABB(Vec3d::ZEROS);
 	}
 
 	AABB aabb(verts[0]);
 
-	for (int vi = 1; vi < vertsN; vi++)
+	for (int vi = 1; vi < verts.size(); vi++)
 	{
 		aabb.AddPoint(verts[vi]);
 	}
@@ -736,7 +610,7 @@ void TMesh::ScaleTo(float size)
 	float scaleFactor = size / currSize;
 
 	Vec3d center = GetCenter();
-	for (int vi = 0; vi < vertsN; vi++)
+	for (int vi = 0; vi < verts.size(); vi++)
 	{
 		verts[vi] = verts[vi] * scaleFactor;
 	}
@@ -745,17 +619,14 @@ void TMesh::ScaleTo(float size)
 	SetCenter(currCenter);
 }
 
-void TMesh::ProjectAll(WorldView* view) 
+void TMesh::ProjectAll(WorldView* view, bool invertW) 
 {
-	if (projected == nullptr)
-	{
-		projected = new Vec3d[vertsN];
-	}
+	projected.resize(verts.size());
 
 	// Project all of the verticies
-	for (int i = 0; i < vertsN; i++)
+	for (int i = 0; i < verts.size(); i++)
 	{
-		if (!view->GetPPC()->Project(verts[i], projected[i]))
+		if (!view->GetPPC()->Project(verts[i], projected[i], invertW))
 		{
 			projected[i] = Vec3d(FLT_MAX, FLT_MAX, FLT_MAX);
 		}
@@ -763,7 +634,8 @@ void TMesh::ProjectAll(WorldView* view)
 		{
 			// Clamp the projected points onto a 64x64 sub-grid 
 			// This helps with numerical precision issues
-			projected[i].Clamp(64);
+			// If we're not inverting w, then we need to exclude Z from the clamping because it will be <1
+			projected[i].Clamp(64, !invertW);
 		}
 	}
 }

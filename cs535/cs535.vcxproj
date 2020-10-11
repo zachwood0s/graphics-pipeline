@@ -142,6 +142,7 @@
     <ClInclude Include="glext.h" />
     <ClInclude Include="gui.h" />
     <ClInclude Include="InterpParam.h" />
+    <ClInclude Include="Light.h" />
     <ClInclude Include="Material.h" />
     <ClInclude Include="matrix3d.h" />
     <ClInclude Include="ppc.h" />
@@ -157,6 +158,7 @@
     <ClCompile Include="FLWindow.cpp" />
     <ClCompile Include="framebuffer.cpp" />
     <ClCompile Include="gui.cxx" />
+    <ClCompile Include="Light.cpp" />
     <ClCompile Include="Material.cpp" />
     <ClCompile Include="matrix3d.cpp" />
     <ClCompile Include="ppc.cpp" />

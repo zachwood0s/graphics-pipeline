@@ -12,9 +12,9 @@ private:
 	PPC *ppc;
 	FrameBuffer *fb;
 	FLWindow *window;
-	int id;
 
 public:
+	int id;
 	bool showCameraBox;
 	bool showCameraScreen;
 	float cameraVf;
@@ -34,7 +34,7 @@ public:
 	WorldView(int bufferW, int bufferH, float hfov, int _id);
 	~WorldView();
 
-	void Render(Scene &scene);
+	void Render(Scene &scene, bool disableLighting);
 	PPC* GetPPC();
 	FrameBuffer* GetFB();
 

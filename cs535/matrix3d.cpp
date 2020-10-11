@@ -87,6 +87,12 @@ void Matrix3d::SetColumn(int column_idx, const Vec3d value)
 	a[2][column_idx] = value[2];
 }
 
+bool Matrix3d::IsValid() const
+{
+	const Matrix3d& a = *this;
+	return a[0].IsValid() && a[1].IsValid() && a[2].IsValid();
+}
+
 Matrix3d Matrix3d::Inverted() const
 {
 
@@ -157,6 +163,15 @@ Matrix3d Matrix3d::EdgeEquations(Vec3d v1, Vec3d v2, Vec3d v3)
 	{
 		ret[ei] = Vec3d::EdgeEquation(pvs[ei], pvs[(ei + 1) % 3], pvs[(ei + 2) % 3]);
 	}
+
+	// Don't render back facing triangles, but flip the edge equations if necessary
+	float area = ret.GetColumn(2) * Vec3d::ONES;
+	if (area < 0)
+	{
+		ret = ret * -1;
+		area = -area;
+	}
+
 	return ret;
 }
 

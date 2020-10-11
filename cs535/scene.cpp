@@ -1,3 +1,4 @@
+#include <chrono>
 #include "stdafx.h"
 
 #include "matrix3d.h"
@@ -22,10 +23,10 @@ Scene::Scene()
 	float hfov = 55.0f;
 
 	WorldView * world = new WorldView("SW Frame Buffer", u0, v0, w, h, hfov, (int) views.size());
-	world->showCameraBox = false;
+	world->showCameraBox = true;
 	world->showCameraScreen = false;
 	world->background.SetFromColor(0xFFFFFFFF);
-	world->kAmbient = .2f;
+	world->kAmbient = .1f;
 
 	views.push_back(world);
 
@@ -52,33 +53,38 @@ Scene::Scene()
 	tmeshes[0].ScaleTo(100);
 	tmeshes[0].SetCenter(Vec3d(3.0f, 0, 0));
 	tmeshes[0].SetMaterial({ Vec3d::XAXIS, 32, 0.8f, head});
+	tmeshes[0].onFlag = false;
 
 	// Cube
 	tmeshes[1].LoadObj("geometry/cube.obj");
 	tmeshes[1].ScaleTo(120);
 	tmeshes[1].SetCenter(Vec3d::ZEROS);
-	tmeshes[1].SetMaterial({ Vec3d::ZEROS, 32, 0.1f, hole });
+	tmeshes[1].SetMaterial({ Vec3d::ZEROS, 32, 0.1f, crate });
+	tmeshes[1].onFlag = true;
 
 	// left cube
 	tmeshes[2].LoadObj("geometry/cube.obj");
 	tmeshes[2].ScaleTo(60);
 	tmeshes[2].SetCenter(Vec3d(-80, 0, 0));
 	tmeshes[2].SetMaterial({ Vec3d::ZEROS, 32, 0.1f, crate });
+	tmeshes[2].onFlag = false;
 
 	// Bottom plane
 	tmeshes[3].LoadObj("geometry/cube.obj");
 	tmeshes[3].ScaleTo(60);
 	tmeshes[3].SetCenter(Vec3d(80, 0, 0));
 	tmeshes[3].SetMaterial({ Vec3d::ZEROS, 32, 0.9f, mirror });
+	tmeshes[3].onFlag = false;
 
 	// Back plane
 	tmeshes[4].LoadObj("geometry/plane.obj");
-	tmeshes[4].ScaleTo(100);
+	tmeshes[4].ScaleTo(600);
 	tmeshes[4].SetCenter(Vec3d(0, -40.0f, 0.0f));
 	tmeshes[4].SetMaterial({ Vec3d::ZEROS, 8, 0.5f, checker });
+	tmeshes[4].onFlag = true;
 
 	// Repeat the checker pattern
-	for (int i = 0; i < tmeshes[4].texsN; i++)
+	for (int i = 0; i < tmeshes[4].texs.size(); i++)
 	{
 		tmeshes[4].texs[i] = tmeshes[4].texs[i] * 6;
 	}
@@ -88,13 +94,15 @@ Scene::Scene()
 	tmeshes[5].ScaleTo(60);
 	tmeshes[5].SetCenter(Vec3d(0, 0, -80));
 	tmeshes[5].SetMaterial({ Vec3d::ZEROS, 32, 0.5f, mountains });
+	tmeshes[5].onFlag = false;
 	
 
 	//tmeshes[0].SetToCube(Vec3d::ZEROS, 100, 0xff00ff00, 0xff0000ff);
 	//tmeshes[0].Rotate(Vec3d::ZEROS, Vec3d::YAXIS, 90.0f);
 
-	views[0]->GetPPC()->SetPose(Vec3d(0, 20, 200), Vec3d::ZEROS, Vec3d::YAXIS);
-	light = Vec3d(world->GetPPC()->C);
+	views[0]->GetPPC()->SetPose(Vec3d(0, 150, 200), Vec3d::ZEROS, Vec3d::YAXIS);
+
+	lights.push_back(new Light(Vec3d(-100, 140, 100), 500, 500, 80.0f));
 //	views[1]->GetPPC()->SetPose(Vec3d(200, 0, -300), Vec3d::ZEROS, Vec3d::YAXIS);
 
 
@@ -114,8 +122,14 @@ Scene::~Scene()
 		delete tex;
 	}
 
+	for (auto light : lights)
+	{
+		delete light;
+	}
+
 	views.clear();
 	textures.clear();
+	lights.clear();
 
 	delete[] tmeshes;
 	tmeshes = nullptr;
@@ -123,30 +137,38 @@ Scene::~Scene()
 
 void Scene::Render() 
 {
+	auto t1 = std::chrono::high_resolution_clock::now();
+	for (auto light : lights)
+	{
+		light->UpdateShadowMap(*this);
+	}
 	for (auto world : views)
 	{
-		world->Render(*this);
+		world->Render(*this, false);
 	}
+	auto t2 = std::chrono::high_resolution_clock::now();
+	auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
+
+	std::cout << "Time: "<< duration << std::endl;
 }
 
 void Scene::DBG() 
 {
+	FrameBuffer * fb = views[0]->GetFB();
 	PPC * ppc = views[0]->GetPPC();
 	{
 		PPC * ppc1 = new PPC(*ppc);
 		PPC * ppc2 = new PPC(*ppc);
-		Vec3d p2 = Vec3d(200, 20, 0);
-		Vec3d p3 = Vec3d(0, 20, -200);
+		Vec3d p2 = Vec3d(200, 150, 0);
+		Vec3d p3 = Vec3d(0, 150, -200);
 		ppc2->SetPose(p2, Vec3d::ZEROS, Vec3d::YAXIS);
-		char fname[25] = "";
+		Light *light = scene->lights[0];
 
 		int stepsN = 300;
 		for (int i = 0; i < stepsN/2; i++)
 		{
-			sprintf_s(fname, "frames/frame%d.tiff", i);
-			views[0]->GetFB()->SaveAsTiff(fname);
-			light = light.Rotate(Vec3d::ZEROS, Vec3d::YAXIS, -3.0f);
-			ppc->Interpolate(ppc1, ppc2, i, stepsN/2);
+			light->SetCenter(light->GetCenter().Rotate(Vec3d::ZEROS, Vec3d::YAXIS, -3.0f));
+			//ppc->Interpolate(ppc1, ppc2, i, stepsN/2);
 			Render();
 			Fl::check();
 		}
@@ -155,10 +177,8 @@ void Scene::DBG()
 
 		for (int i = 0; i < stepsN/2; i++)
 		{
-			sprintf_s(fname, "frames/frame%d.tiff", i + stepsN/2);
-			views[0]->GetFB()->SaveAsTiff(fname);
-			light = light.Rotate(Vec3d::ZEROS, Vec3d::YAXIS, -3.0f);
-			ppc->Interpolate(ppc2, ppc1, i, stepsN/2);
+			light->SetCenter(light->GetCenter().Rotate(Vec3d::ZEROS, Vec3d::YAXIS, -3.0f));
+			//ppc->Interpolate(ppc2, ppc1, i, stepsN/2);
 			Render();
 			Fl::check();
 		}

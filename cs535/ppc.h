@@ -45,7 +45,7 @@ public:
 	/// <param name="P">The unprojected, 3D point</param>
 	/// <param name="p">The modified, projected, 2D point</param>
 	/// <returns>1 if successful, 0 if not</returns>
-	int Project(Vec3d P, Vec3d &p);
+	bool Project(Vec3d P, Vec3d &p, bool invertW = true);
 
 	/// <summary>
 	/// Unprojects a point using this camera

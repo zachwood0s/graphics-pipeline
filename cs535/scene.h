@@ -6,6 +6,7 @@
 #include "Texture.h"
 #include "TMesh.h"
 #include "WorldView.h"
+#include "Light.h"
 
 class Vec3d;
 
@@ -24,11 +25,11 @@ public:
 	void NewButton();
 	void Render();
 
-	Vec3d light;
+	std::vector<Light*> lights;
 
 	TEX_HANDLE LoadTexture(const char *, bool isMipmap);
 
-	friend void WorldView::Render(Scene &scene);
+	friend void WorldView::Render(Scene &scene, bool disableLighting);
 
 };
 

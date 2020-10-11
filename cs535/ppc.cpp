@@ -84,17 +84,21 @@ void PPC::Interpolate(PPC* ppc0, PPC* ppc1, int currStep, int stepCount)
 
 #pragma region Projection
 
-int PPC::Project(Vec3d P, Vec3d &p) 
+bool PPC::Project(Vec3d P, Vec3d &p, bool invertW) 
 {
 	Vec3d q = invertedCached*(P - C);
 	float w = q[2];
 	if (w <= 0.0f)
-		return 0;
+		return false;
 
 	p[0] = q[0] / q[2];
 	p[1] = q[1] / q[2];
-	p[2] = 1.0f / w;
-	return 1;
+
+	if (invertW)
+		p[2] = 1.0f / w;
+	else
+		p[2] = w;
+	return true;
 }
 
 Vec3d PPC::UnProject(Vec3d p) 

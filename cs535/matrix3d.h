@@ -30,6 +30,7 @@ public:
 
 	Vec3d GetColumn(int column_idx) const;
 	void SetColumn(int column_idx, const Vec3d value);
+	bool IsValid() const;
 
 	/// <summary>
 	/// Returns the iverted version of this matrix

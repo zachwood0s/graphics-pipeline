@@ -1,4 +1,3 @@
-#include <chrono>
 
 #include "WorldView.h"
 #include "scene.h"
@@ -36,7 +35,7 @@ WorldView::~WorldView()
 	window = nullptr;
 }
 
-void WorldView::Render(Scene & scene)
+void WorldView::Render(Scene & scene, bool disableLighting)
 {
 	fb->SetBGR(background.GetColor());
 	fb->ClearZB();
@@ -46,13 +45,7 @@ void WorldView::Render(Scene & scene)
 		if (!scene.tmeshes[tmi].onFlag)
 			continue;
 
-		auto t1 = std::chrono::high_resolution_clock::now();
-		scene.tmeshes[tmi].DrawModelSpaceInterpolated(scene, this);
-		auto t2 = std::chrono::high_resolution_clock::now();
-		auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
-
-		//std::cout << "Time: "<< duration << std::endl;
-
+		scene.tmeshes[tmi].DrawModelSpaceInterpolated(scene, this, disableLighting);
 	}
 
 	if (showCameraBox || showCameraScreen)
@@ -75,7 +68,8 @@ void WorldView::Render(Scene & scene)
 			}
 		}
 	}
-
+	fb->Draw3DPoint(scene.lights[0]->GetCenter(), ppc, 10, Vec3d::XAXIS);
+	fb->Draw3DPoint(Vec3d(-77.4158630, -39.8184967, -7.55259705), ppc, 10, Vec3d::YAXIS);
 	// If a window is associated with this world, redraw it
 	if (window)
 	{

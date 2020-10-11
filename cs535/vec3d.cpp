@@ -61,12 +61,13 @@ void Vec3d::Clamp(Vec3d min, Vec3d max)
 	v[2] = clamp(v[2], min[2], max[2]);
 }
 
-void Vec3d::Clamp(int nearest)
+void Vec3d::Clamp(int nearest, bool excludeZ)
 {
 	Vec3d &v = *this;
 	v[0] = std::floorf(v[0] * nearest + .5f) / nearest;
 	v[1] = std::floorf(v[1] * nearest + .5f) / nearest;
-	v[2] = std::floorf(v[2] * nearest + .5f) / nearest;
+	if (!excludeZ)
+		v[2] = std::floorf(v[2] * nearest + .5f) / nearest;
 }
 
 float Vec3d::Min() const
@@ -84,6 +85,12 @@ float Vec3d::Max() const
 std::tuple<float, float> Vec3d::Bounds() const
 {
 	return { Min(), Max() };
+}
+
+bool Vec3d::IsValid() const
+{
+	const Vec3d &v = *this;
+	return v[0] != FLT_MAX && v[1] != FLT_MAX && v[2] != FLT_MAX;
 }
 
 const float& Vec3d::operator[](const int& n) const

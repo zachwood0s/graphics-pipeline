@@ -30,12 +30,13 @@ public:
 	Vec3d Rotate(const Vec3d origin, const Vec3d direction, const float theta) const;
 	Vec3d Rotate(const Vec3d direction, const float theta) const;
 	void Set(const Vec3d other);
-	void Clamp(int nearest);
+	void Clamp(int nearest, bool excludeZ = false);
 	void Clamp(Vec3d minVals, Vec3d maxVals);
 	void Clamp(AABB bounds);
 	float Min() const;
 	float Max() const;
 	std::tuple<float, float> Bounds() const;
+	bool IsValid() const;
 
 	const float& operator[](const int& n) const;
 	float& operator[](const int& n);

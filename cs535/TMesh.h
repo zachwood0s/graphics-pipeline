@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include "Vec3d.h"
 #include "ppc.h"
 #include "framebuffer.h"
@@ -9,9 +11,6 @@
 
 struct InterpVal
 {
-	InterpVal(Vec3d e, Vec3d c, Vec3d n, Vec3d t, float z, float d)
-		: edges(e), colors(c), normals(n), texs(t), zVal(z), denom(d)  {}
-
 	Vec3d edges;
 	Vec3d colors;
 	Vec3d normals;
@@ -73,37 +72,31 @@ class TMesh
 {
 private:
 	Material material;
-	Vec3d *projected;
+	std::vector<Vec3d> projected;
 
 	// This is private because the vertices need to be projected before entering this function
-	void DrawModelSpaceInterpolated(Scene & scene, WorldView *world, Rect renderBounds);
+	void DrawModelSpaceInterpolated(Scene & scene, WorldView *world, Rect renderBounds, bool disableLighting);
 
 public:
 	int onFlag;
-	Vec3d *verts;
-	Vec3d *colors;
-	Vec3d *normals;
-	Vec3d *texs;
-	int vertsN;
-	int normalsN;
-	int texsN;
-	unsigned int *tris;
-	unsigned int *normalTris; // needed to support obj fiels
-	unsigned int *texTris;
-	int trisN;
+	std::vector<Vec3d> verts;
+	std::vector<Vec3d> colors;
+	std::vector<Vec3d> normals;
+	std::vector<Vec3d> texs;
+	std::vector<unsigned int> tris;
+	std::vector<unsigned int> normalTris;
+	std::vector<unsigned int> texTris;
 
 	bool hasMaterial = false;
 
 	TMesh();
 	~TMesh();
-	void SetToCube(Vec3d cc, float sideLength, unsigned int color0, unsigned int color1);
 	void SetToPlane(Vec3d cc, float w, float h);
-	void Allocate(int _vertsN, int _trisN);
 
 	void DrawCubeQuadFaces(FrameBuffer *fb, PPC *ppc, unsigned int color);
 	void DrawWireFrame(WorldView * world, unsigned int color);
-	void DrawInterpolated(WorldView * world, Vec3d light);
-	void DrawModelSpaceInterpolated(Scene & scene, WorldView *world);
+	void DrawInterpolated(Scene &scene, WorldView * world);
+	void DrawModelSpaceInterpolated(Scene & scene, WorldView *world, bool disableLighting);
 
 	void LoadBin(const char *fname);
 	void LoadObj(const char *fname);
@@ -120,6 +113,6 @@ public:
 	void ScaleTo(float size);
 
 
-	void ProjectAll(WorldView* view);
+	void ProjectAll(WorldView* view, bool invertW = true);
 	TriangleMatrices GetTriangleMatrices(int tri) const;
 };
