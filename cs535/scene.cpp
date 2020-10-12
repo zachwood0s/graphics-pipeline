@@ -4,6 +4,7 @@
 #include "matrix3d.h"
 #include "vec3d.h"
 #include "scene.h"
+#include "shaders.h"
 
 Scene *scene;
 
@@ -22,19 +23,31 @@ Scene::Scene()
 	int w = 640;
 	float hfov = 55.0f;
 
-	WorldView * world = new WorldView("SW Frame Buffer", u0, v0, w, h, hfov, (int) views.size());
-	world->showCameraBox = true;
-	world->showCameraScreen = false;
+	Vec3d cameraStart(0.0f, 150.0f, 200.0f);
+
+	// Create the moving camera world view
+	WorldView * world = new WorldView("Moving Camera", u0, v0, w, h, hfov, (int) views.size());
 	world->background.SetFromColor(0xFFFFFFFF);
-	world->kAmbient = .1f;
+	world->kAmbient = .05f;
+	world->GetPPC()->SetPose(cameraStart, Vec3d::ZEROS, Vec3d::YAXIS);
+
+	world->shaders.push_back(Shaders::phongShading);
+	world->shaders.push_back(Shaders::projectiveTextures);
 
 	views.push_back(world);
 
-//	world = new WorldView("SW 3", u0 + w + 20, v0, w, h, hfov, (int) views.size());
-//	world->GetPPC()->ZoomFocalLength(.5f);
-//	world->cameraVf = 100.0f;
+	// Create the stationary camera world view
+	world = new WorldView("Stationary Camera", u0 + w + 20, v0, w, h, hfov, (int) views.size());
+	world->showCameraBox = true;
+	world->background.SetFromColor(0xFFFFFFFF);
+	world->kAmbient = .05f;
+	world->GetPPC()->ZoomFocalLength(.5f);
+	world->GetPPC()->SetPose(cameraStart, Vec3d::ZEROS, Vec3d::YAXIS);
 
-//	views.push_back(world);
+	world->shaders.push_back(Shaders::phongShading);
+	world->shaders.push_back(Shaders::projectiveTextures);
+
+	views.push_back(world);
 
 	gui->uiw->position(u0, v0 + h + 50);
 
@@ -47,7 +60,7 @@ Scene::Scene()
 	TEX_HANDLE hole = LoadTexture("textures/hole.tiff", false);
 	TEX_HANDLE crate = LoadTexture("textures/crate.tiff", false);
 	TEX_HANDLE mirror = LoadTexture("textures/mirror.tiff", false);
-	TEX_HANDLE wood = LoadTexture("textures/wood.tiff", false);
+	TEX_HANDLE hello = LoadTexture("textures/hellotext.tiff", false);
 
 	// Fox
 	tmeshes[0].LoadObj("geometry/fox.obj");
@@ -60,7 +73,7 @@ Scene::Scene()
 	tmeshes[1].LoadObj("geometry/cube.obj");
 	tmeshes[1].ScaleTo(120);
 	tmeshes[1].SetCenter(Vec3d::ZEROS);
-	tmeshes[1].SetMaterial({ Vec3d::ONES * .1f, 32, 0.1f, hole });
+	tmeshes[1].SetMaterial({ Vec3d::ONES * .1f, 32, 0.1f, TEX_INVALID });
 	tmeshes[1].onFlag = true;
 
 	// left cube
@@ -77,39 +90,27 @@ Scene::Scene()
 	tmeshes[3].SetMaterial({ Vec3d::ONES * .1f, 32, 0.9f, TEX_INVALID });
 	tmeshes[3].onFlag = false;
 
-	// Back plane
+	// Bottom plane
 	tmeshes[4].LoadObj("geometry/plane.obj");
 	tmeshes[4].ScaleTo(600);
 	tmeshes[4].SetCenter(Vec3d(0, -40.0f, 0.0f));
 	tmeshes[4].SetMaterial({ Vec3d::ONES * .1f, 8, 0.5f, TEX_INVALID });
 	tmeshes[4].onFlag = true;
 
-	// Repeat the checker pattern
-	for (int i = 0; i < tmeshes[4].texs.size(); i++)
-	{
-		tmeshes[4].texs[i] = tmeshes[4].texs[i] * 6;
-	}
-
-	// Bottom plane
-	tmeshes[5].LoadObj("geometry/cube.obj");
-	tmeshes[5].ScaleTo(60);
-	tmeshes[5].SetCenter(Vec3d(0, 0, -80));
-	tmeshes[5].SetMaterial({ Vec3d::ONES * .1f, 32, 0.5f });
-	tmeshes[5].onFlag = false;
 	
 
-	//tmeshes[0].SetToCube(Vec3d::ZEROS, 100, 0xff00ff00, 0xff0000ff);
-	//tmeshes[0].Rotate(Vec3d::ZEROS, Vec3d::YAXIS, 90.0f);
+	Light * light = new Light(Vec3d(-140, 254, 140), 500, 500, 90.0f);
+	light->SetAttenuation(1.0f, 0.00000045f, 0.000000075f);
+	lights.push_back(light);
 
-	views[0]->GetPPC()->SetPose(Vec3d(0, 150, 200), Vec3d::ZEROS, Vec3d::YAXIS);
-
-	Light * light = new Light(Vec3d(-100, 140, 100), 500, 500, 90.0f);
+	light = new Light(Vec3d(-140, 104, 140), 500, 500, 90.0f);
+	light->SetAttenuation(1.0f, 0.00000045f, 0.000000075f);
 	lights.push_back(light);
 
 
-	//Projector * projector = new Projector(Vec3d(0, 150, 200), 512, 512, 90.0f, wood);
-	//projectors.push_back(projector);
-//	views[1]->GetPPC()->SetPose(Vec3d(200, 0, -300), Vec3d::ZEROS, Vec3d::YAXIS);
+	Projector * projector = new Projector(Vec3d(0, 150, 200), 512, 512, 50.0f, hello);
+	projectors.push_back(projector);
+	//views[1]->GetPPC()->SetPose(Vec3d(200, 0, -300), Vec3d::ZEROS, Vec3d::YAXIS);
 
 
 	Render();
@@ -171,16 +172,21 @@ void Scene::DBG()
 		ppc2->SetPose(p2, Vec3d::ZEROS, Vec3d::YAXIS);
 		Light *light = scene->lights[0];
 
-		//projectors[0]->UpdateShadowMap(*this);
+		projectors[0]->UpdateShadowMap(*this);
 		light->UpdateShadowMap(*this);
+		lights[1]->UpdateShadowMap(*this);
+
 		//return;
 
-		int stepsN = 300;
+		int stepsN = 360;
 		for (int i = 0; i < stepsN/2; i++)
 		{
 			light->SetCenter(light->GetCenter().Rotate(Vec3d::ZEROS, Vec3d::YAXIS, -3.0f));
 			light->UpdateShadowMap(*this);
-			ppc->Interpolate(ppc1, ppc2, i, stepsN/2);
+			projectors[0]->SetCenter(projectors[0]->GetCenter().Rotate(Vec3d::ZEROS, Vec3d::YAXIS, -1.0f));
+			projectors[0]->UpdateShadowMap(*this);
+			ppc->SetPose(projectors[0]->GetCenter(), Vec3d::ZEROS, Vec3d::YAXIS);
+			//ppc->Interpolate(ppc1, ppc2, i, stepsN/2);
 			Render();
 			Fl::check();
 		}
@@ -191,7 +197,10 @@ void Scene::DBG()
 		{
 			light->SetCenter(light->GetCenter().Rotate(Vec3d::ZEROS, Vec3d::YAXIS, -3.0f));
 			light->UpdateShadowMap(*this);
-			ppc->Interpolate(ppc2, ppc1, i, stepsN/2);
+			projectors[0]->SetCenter(projectors[0]->GetCenter().Rotate(Vec3d::ZEROS, Vec3d::YAXIS, -1.0f));
+			projectors[0]->UpdateShadowMap(*this);
+			ppc->SetPose(projectors[0]->GetCenter(), Vec3d::ZEROS, Vec3d::YAXIS);
+			//ppc->Interpolate(ppc2, ppc1, i, stepsN/2);
 			Render();
 			Fl::check();
 		}

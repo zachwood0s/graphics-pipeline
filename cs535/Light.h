@@ -14,11 +14,20 @@ public:
 	Light(Vec3d center, int shadowResX, int shadowResY, float fov);
 	~Light();
 
+	float constant = 1.0f;
+	float linear = 0.09f;
+	float quadradic = 0.032f;
 
-	Vec3d LightPixel(Vec3d point, Vec3d curColor, Vec3d normalVector, Vec3d viewDir, float ambient, Material mat) const;
+	float ambient = .1f;
+	float diffuse = .8f;
+	float specular = 1.0f;
+
+
+	Vec3d LightPixel(Vec3d point, Vec3d curColor, Vec3d normalVector, Vec3d viewDir, Material mat) const;
 	bool IsInShadow(Vec3d point);
 	void UpdateShadowMap(Scene &scene);
 	void SetCenter(Vec3d center);
 	Vec3d GetCenter() const;
+	void SetAttenuation(float constant, float linear, float quadradic);
 };
 

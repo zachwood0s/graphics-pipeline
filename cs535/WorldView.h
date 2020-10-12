@@ -1,14 +1,12 @@
 #pragma once
-#include <functional>
 #include <vector>
 
 #include "ppc.h"
 #include "framebuffer.h"
 #include "FLWindow.h"
+#include "shaders.h"
 
 class Scene;
-
-using Shader = std::function<Vec3d(Scene, InterpVal)>;
 
 class WorldView
 {

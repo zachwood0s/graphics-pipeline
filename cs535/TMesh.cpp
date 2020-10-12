@@ -11,10 +11,11 @@
 #include "AABB.h"
 #include "matrix3d.h"
 #include "Material.h"
+#include "shaders.h"
 
 using namespace std;
 
-const int RENDER_CUBE_COUNT = 4; // The number of cubes to render across
+const int RENDER_SQUARE_COUNT = 4; // The number of cubes to render across
 
 TMesh::~TMesh()
 {
@@ -101,14 +102,6 @@ void TMesh::DrawInterpolated(Scene &scene, WorldView * view)
 	{
 		TriangleMatrices matrices = GetTriangleMatrices(tri);
 
-		//unsigned int vertexIdx[3] = { tris[3 * tri + 0], tris[3 * tri + 1], tris[3 * tri + 2] };
-		//unsigned int normalIdx[3] = { normalTris[3 * tri + 0], normalTris[3 * tri + 1], normalTris[3 * tri + 2] };
-
-		// Create the point matrix and color matrix for this triangle
-		//Matrix3d pointM(projected[vertexIdx[0]], projected[vertexIdx[1]], projected[vertexIdx[2]]);
-		//Matrix3d colorM = Matrix3d::FromColumns(colors[vertexIdx[0]], colors[vertexIdx[1]], colors[vertexIdx[2]]);
-		//Matrix3d normalM = Matrix3d::FromColumns(normals[normalIdx[0]], normals[normalIdx[1]], normals[normalIdx[2]]);
-
 		if(!matrices.projected.IsValid())
 		//if (pointM[0][0] == FLT_MAX || pointM[1][0] == FLT_MAX || pointM[2][0] == FLT_MAX)
 		{
@@ -166,20 +159,13 @@ void TMesh::DrawInterpolated(Scene &scene, WorldView * view)
 					Material currMat = hasMaterial ? material : Material::DEFAULT(interpE.colors);
 					auto[baseColor, alpha] = currMat.GetColor(scene, interpE.texs, texDeltas);
 
-					// Normal at current pixel
-					Vec3d currPix = Vec3d(currPixX + .5f, currPixY + .5f, 1);
-					Vec3d normalVector = interpE.normals.Normalized();
-
-					// 3D surface point at current pixel
-					Vec3d currP = view->GetPPC()->UnProject(Vec3d(currPix[0], currPix[1], currZ));
-
-					// Light vector
+					fb->SetZ(currPixX, currPixY, currZ);
 					Vec3d currColor = baseColor;
-					Vec3d viewDir = (view->GetPPC()->C - currP).Normalized();
+					Vec3d currP = view->GetPPC()->UnProject(Vec3d(currPixX, currPixY, currZ));
 
-					for (auto light : scene.lights)
+					for (auto shader : view->shaders)
 					{
-						currColor = light->LightPixel(currP, currColor, normalVector, viewDir, view->kAmbient, currMat);
+						currColor = shader({ scene, *view, currMat, interpE, currColor, currP });
 					}
 
 					// Clamp each color to somewhere in their starting range.
@@ -207,7 +193,7 @@ void TMesh::DrawModelSpaceInterpolated(Scene &scene, WorldView *view, bool disab
 	ProjectAll(view, false);
 	int w = view->GetFB()->w;
 	int h = view->GetFB()->h;
-	int square = w / RENDER_CUBE_COUNT;
+	int square = w / RENDER_SQUARE_COUNT;
 	int squaresW = std::ceil(w / (float) square);
 	int squaresH = std::ceil(h / (float) square);
 
@@ -272,20 +258,22 @@ void TMesh::DrawModelSpaceInterpolated(Scene &scene, WorldView *view, Rect rende
 			{
 				if (interpE.edges[0] >= 0 && interpE.edges[1] >= 0 && interpE.edges[2] >= 0)
 				{
-					//Vec3d currPix = Vec3d(currPixX + .5f, currPixY + .5f, 1);
 					float denom = 1 / interpE.denom;
+					Vec3d texDeltas(texCoefs.GetColumn(0).Length() * denom, texCoefs.GetColumn(1).Length() * denom, 0);
+					float currZ = 1 / (interpE.zVal * denom);
+
+					// Compute the current interp by multiplying by the denominator
+					InterpVal interp = { interpE.edges, interpE.colors * denom, interpE.normals * denom, texDeltas, currZ, denom };
 
 					// Clamp the z value so that its valid for this triangle.
-					float currZ = 1 / (interpE.zVal * denom);
 					if (fb->Farther(currPixX, currPixY, currZ, false))
 					{
 						continue;
 					}
 
 					// Get the material values
-					Vec3d texDeltas(texCoefs.GetColumn(0).Length() * denom, texCoefs.GetColumn(1).Length() * denom, 0);
-					Material currMat = hasMaterial ? material : Material::DEFAULT(interpE.colors * denom);
-					auto[baseColor, alpha] = currMat.GetColor(scene, interpE.texs * denom, texDeltas);
+					Material currMat = hasMaterial ? material : Material::DEFAULT(interp.colors);
+					auto[baseColor, alpha] = currMat.GetColor(scene, interpE.texs * denom, interp.texs);
 
 					// Check to see if this pixel should even be rendered
 					if (FP_ZERO == fpclassify(alpha))
@@ -293,46 +281,14 @@ void TMesh::DrawModelSpaceInterpolated(Scene &scene, WorldView *view, Rect rende
 						continue; 
 					}
 
-					// If it should, update the z-buffer to reflect that
+					// If it should, update the z-buffer to reflect that:w
 					fb->SetZ(currPixX, currPixY, currZ);
 					Vec3d currColor = baseColor;
-
-					// 3D surface point at current pixel
 					Vec3d currP = view->GetPPC()->UnProject(Vec3d(currPixX, currPixY, currZ));
 
-					if (!disableLighting)
+					for (auto shader : view->shaders)
 					{
-						// Normal at current pixel
-						Vec3d normalVector = (interpE.normals * denom).Normalized();
-
-						// Light vector
-						Vec3d viewDir = (view->GetPPC()->C - currP).Normalized();
-						for (auto light : scene.lights)
-						{
-							if (!light->IsInShadow(currP))
-								currColor = light->LightPixel(currP, currColor, normalVector, viewDir, view->kAmbient, currMat);
-							else
-								// Temporary before I figure out how to handle multiple lights
-								currColor = baseColor * view->kAmbient;
-						}
-
-						for (auto projector : scene.projectors)
-						{
-							if (!projector->IsInShadow(currP))
-							{
-								Vec3d newColor;
-								if (projector->GetColorAt3dPoint(scene, currP, newColor))
-								{
-									currColor = newColor;
-								}
-							}
-						}
-					}
-					else
-					{
-						// Show a depth map
-						float val = 1 - 1 / (1 + currZ / 5);
-						currColor = Vec3d(val, val, val);
+						currColor = shader({ scene, *view, currMat, interp, currColor, currP });
 					}
 
 					// Clamp each color to somewhere in their starting range.

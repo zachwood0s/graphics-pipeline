@@ -15,7 +15,7 @@ WorldView::WorldView(std::string name, int windowX, int windowY, int windowW, in
 }
 
 WorldView::WorldView(int bufferW, int bufferH, float hFov, int _id) 
-	:id(_id), showCameraBox(true), showCameraScreen(true), cameraVf(20.0f), window(nullptr), kAmbient(0.2f)
+	:id(_id), showCameraBox(false), showCameraScreen(false), cameraVf(20.0f), window(nullptr), kAmbient(0.2f)
 {
 	fb = new FrameBuffer(bufferW, bufferH);
 	ppc = new PPC(hFov, bufferW, bufferH);

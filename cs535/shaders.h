@@ -1,0 +1,28 @@
+#pragma once
+#include <functional>
+
+#include "vec3d.h"
+
+class Scene;
+class WorldView;
+class Material;
+struct InterpVal;
+
+struct ShaderInputs 
+{
+	Scene &scene;
+	WorldView &view;
+	Material &mat;
+	InterpVal &interp;
+	Vec3d currColor;
+	Vec3d currP;
+};
+
+using Shader = std::function<Vec3d(ShaderInputs inputs)>;
+
+namespace Shaders
+{
+	Vec3d phongShading(ShaderInputs inputs);
+	Vec3d depthShading(ShaderInputs inputs);
+	Vec3d projectiveTextures(ShaderInputs inputs);
+}
