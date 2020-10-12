@@ -26,13 +26,14 @@ Scene::Scene()
 	Vec3d cameraStart(0.0f, 50.0f, 200.0f);
 
 	// Create the stationary camera world view
-	WorldView * world = new WorldView("Audience Without the Effect", u0 + w + 20, v0, w, h, hfov, (int) views.size());
+	WorldView * world = new WorldView("Audience Without the Effect", u0, v0 + h + 20, w, h, hfov, (int) views.size());
 	world->background.SetFromColor(0xFFFFFFFF);
 	world->kAmbient = .05f;
 	world->GetPPC()->ZoomFocalLength(.5f);
 	world->GetPPC()->SetPose(cameraStart, Vec3d::ZEROS, Vec3d::YAXIS);
+
 	world->shaders.push_back(Shaders::invisibilityShader);
-	//world->shaders.push_back(Shaders::phongShading);
+
 	views.push_back(world);
 
 	// Create the moving camera world view
@@ -42,7 +43,6 @@ Scene::Scene()
 	world->kAmbient = .05f;
 	world->GetPPC()->SetPose(cameraStart, Vec3d::ZEROS, Vec3d::YAXIS);
 
-	//world->shaders.push_back(Shaders::phongShading);
 	world->shaders.push_back(Shaders::projectiveTextures);
 
 	views.push_back(world);
@@ -54,7 +54,16 @@ Scene::Scene()
 	world->GetPPC()->ZoomFocalLength(.5f);
 	world->GetPPC()->SetPose(cameraStart, Vec3d::ZEROS, Vec3d::YAXIS);
 
-	//world->shaders.push_back(Shaders::phongShading);
+	world->hiddenMeshes.insert(0);
+
+	views.push_back(world);
+
+	world = new WorldView("Render", 0, 0, w*3, h, hfov, (int) views.size());
+	world->background.SetFromColor(0xFFFFFFFF);
+	world->kAmbient = .05f;
+	world->GetPPC()->ZoomFocalLength(.5f);
+	world->GetPPC()->SetPose(cameraStart, Vec3d::ZEROS, Vec3d::YAXIS);
+
 	world->hiddenMeshes.insert(0);
 
 	views.push_back(world);
@@ -118,7 +127,7 @@ Scene::Scene()
 	//lights.push_back(light);
 
 
-	Projector * projector = new Projector(Vec3d(50, 100, 230), w*1.2, h*1.2, 90.0f, TEX_INVALID);
+	Projector * projector = new Projector(Vec3d(50, 100, 230), w, h, 90.0f, TEX_INVALID);
 	projector->shadowMap->shaders.pop_back();
 	projectors.push_back(projector);
 	//views[1]->GetPPC()->SetPose(Vec3d(200, 0, -300), Vec3d::ZEROS, Vec3d::YAXIS);
@@ -171,6 +180,38 @@ void Scene::Render()
 	std::cout << "Time: "<< duration << std::endl;
 }
 
+void CopyIntoRender(Scene &scene)
+{
+	auto fbNoEffect = scene.views[0]->GetFB();
+	auto fbAudience = scene.views[1]->GetFB();
+	auto fbProjector = scene.projectors[0]->shadowMap->GetFB();
+	auto fbRendered = scene.views[3]->GetFB();
+
+	for (int i = 0; i < fbAudience->w; i++)
+	{
+		for (int j = 0; j < fbAudience->h; j++)
+		{
+			fbRendered->Set(i, j, fbAudience->Get(i, j));
+		}
+	}
+
+	for (int i = 0; i < fbNoEffect->w; i++)
+	{
+		for (int j = 0; j < fbNoEffect->h; j++)
+		{
+			fbRendered->Set(i + fbAudience->w, j, fbNoEffect->Get(i, j));
+		}
+	}
+
+	for (int i = 0; i < fbProjector->w; i++)
+	{
+		for (int j = 0; j < fbProjector->h; j++)
+		{
+			fbRendered->Set(i + fbNoEffect->w + fbAudience->w, j, fbProjector->Get(i, j));
+		}
+	}
+}
+
 void Scene::DBG() 
 {
 	FrameBuffer * fb = views[0]->GetFB();
@@ -180,14 +221,18 @@ void Scene::DBG()
 		projectors[0]->UpdateShadowMap(*this);
 
 		int stepsN = 300;
-		for (int i = 0; i < stepsN / 2; i++)
+		char fname[30] = "";
+		for (int i = 0; i < stepsN; i++)
 		{
 			projectors[0]->shadowMap->GetFB()->SetBGR(Vec3d::ZEROS.GetColor());
-			tmeshes[0].Translate(Vec3d(1.0f, 0.0f, 0.0f));
+			tmeshes[0].Translate(Vec3d(0.75f, 0.0f, 0.0f));
 			tmeshes[4].Rotate(tmeshes[4].GetCenter(), Vec3d::YAXIS, 360 / (float)stepsN);
 			projectors[0]->UpdateShadowMap(*this);
 
 			Render();
+			CopyIntoRender(*this);
+			sprintf_s(fname, "frames/frame_%d.tiff", i);
+			views[3]->GetFB()->SaveAsTiff(fname);
 			projectors[0]->shadowMap->Redraw();
 			Fl::check();
 		}

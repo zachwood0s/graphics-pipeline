@@ -286,6 +286,7 @@ void TMesh::DrawModelSpaceInterpolated(Scene &scene, WorldView *view, Rect rende
 					Vec3d currColor = baseColor;
 					Vec3d currP = view->GetPPC()->UnProject(Vec3d(currPixX, currPixY, currZ));
 
+					// Call each shader in order, passing in the updated color into each. 
 					for (auto shader : view->shaders)
 					{
 						currColor = shader({ scene, *view, currMat, interp, currColor, currP, Vec3d(currPixX, currPixY, currZ) });
@@ -302,10 +303,8 @@ void TMesh::DrawModelSpaceInterpolated(Scene &scene, WorldView *view, Rect rende
 				{
 					break; // Continue onto next line
 				}
-
 			}
 		}
-
 	}
 
 }
@@ -424,8 +423,6 @@ void TMesh::LoadObj(const char * fname)
 	texTris.clear();
 	normalTris.clear();
 	
-
-
 	while (1)
 	{
 		char lineHeader[128];
