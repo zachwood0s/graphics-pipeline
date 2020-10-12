@@ -165,7 +165,7 @@ void TMesh::DrawInterpolated(Scene &scene, WorldView * view)
 
 					for (auto shader : view->shaders)
 					{
-						currColor = shader({ scene, *view, currMat, interpE, currColor, currP });
+						currColor = shader({ scene, *view, currMat, interpE, currColor, currP, Vec3d(currPixX, currPixY, currZ) });
 					}
 
 					// Clamp each color to somewhere in their starting range.
@@ -288,7 +288,7 @@ void TMesh::DrawModelSpaceInterpolated(Scene &scene, WorldView *view, Rect rende
 
 					for (auto shader : view->shaders)
 					{
-						currColor = shader({ scene, *view, currMat, interp, currColor, currP });
+						currColor = shader({ scene, *view, currMat, interp, currColor, currP, Vec3d(currPixX, currPixY, currZ) });
 					}
 
 					// Clamp each color to somewhere in their starting range.

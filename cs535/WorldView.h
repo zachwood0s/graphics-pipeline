@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <unordered_set>
 
 #include "ppc.h"
 #include "framebuffer.h"
@@ -26,6 +27,7 @@ public:
 	Vec3d background;
 
 	std::vector<Shader> shaders;
+	std::unordered_set<int> hiddenMeshes;
 
 	/// <summary>
 	/// Creates a world view with a window attached to it.
@@ -39,6 +41,7 @@ public:
 	~WorldView();
 
 	void Render(Scene &scene, bool disableLighting);
+	void Redraw();
 	PPC* GetPPC();
 	FrameBuffer* GetFB();
 

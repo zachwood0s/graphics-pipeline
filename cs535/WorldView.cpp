@@ -42,7 +42,7 @@ void WorldView::Render(Scene & scene, bool disableLighting)
 
 	for (int tmi = 0; tmi < scene.tmeshesN; tmi++) 
 	{
-		if (!scene.tmeshes[tmi].onFlag)
+		if (!scene.tmeshes[tmi].onFlag || hiddenMeshes.count(tmi))
 			continue;
 
 		scene.tmeshes[tmi].DrawModelSpaceInterpolated(scene, this, disableLighting);
@@ -68,15 +68,16 @@ void WorldView::Render(Scene & scene, bool disableLighting)
 			}
 		}
 	}
-	fb->Draw3DPoint(scene.lights[0]->GetCenter(), ppc, 10, Vec3d::XAXIS);
-	fb->Draw3DPoint(Vec3d(-77.4158630, -39.8184967, -7.55259705), ppc, 10, Vec3d::YAXIS);
+	Redraw();
+}
+
+void WorldView::Redraw()
+{
 	// If a window is associated with this world, redraw it
 	if (window)
 	{
 		window->redraw();
 	}
-
-
 }
 
 PPC* WorldView::GetPPC()
