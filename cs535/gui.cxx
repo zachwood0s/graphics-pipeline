@@ -2,31 +2,41 @@
 
 #include "gui.h"
 
-void GUI::cb_DBG_i(Fl_Button*, void*) {
-  DBG_cb();
+void GUI::cb_Run_i(Fl_Button*, void*) {
+  RunInvis_cb();
 }
-void GUI::cb_DBG(Fl_Button* o, void* v) {
-  ((GUI*)(o->parent()->user_data()))->cb_DBG_i(o,v);
+void GUI::cb_Run(Fl_Button* o, void* v) {
+  ((GUI*)(o->parent()->user_data()))->cb_Run_i(o,v);
 }
 
-void GUI::cb_NewButton_i(Fl_Return_Button*, void*) {
-  NewButton_cb();
+void GUI::cb_Run1_i(Fl_Button*, void*) {
+  RunShadows_cb();
 }
-void GUI::cb_NewButton(Fl_Return_Button* o, void* v) {
-  ((GUI*)(o->parent()->user_data()))->cb_NewButton_i(o,v);
+void GUI::cb_Run1(Fl_Button* o, void* v) {
+  ((GUI*)(o->parent()->user_data()))->cb_Run1_i(o,v);
+}
+
+void GUI::cb_Run2_i(Fl_Button*, void*) {
+  RunProjector_cb();
+}
+void GUI::cb_Run2(Fl_Button* o, void* v) {
+  ((GUI*)(o->parent()->user_data()))->cb_Run2_i(o,v);
 }
 #include "scene.h"
 
 GUI::GUI() {
-  { uiw = new Fl_Double_Window(199, 197, "GUI");
+  { uiw = new Fl_Double_Window(326, 69, "GUI");
     uiw->user_data((void*)(this));
-    { Fl_Button* o = new Fl_Button(15, 15, 95, 40, "DBG");
+    { Fl_Button* o = new Fl_Button(215, 15, 95, 40, "Run Invisibility");
       o->selection_color(FL_DARK_RED);
-      o->callback((Fl_Callback*)cb_DBG);
+      o->callback((Fl_Callback*)cb_Run);
     } // Fl_Button* o
-    { Fl_Return_Button* o = new Fl_Return_Button(30, 80, 110, 100, "NewButton");
-      o->callback((Fl_Callback*)cb_NewButton);
-    } // Fl_Return_Button* o
+    { Fl_Button* o = new Fl_Button(15, 15, 95, 40, "Run Shadows");
+      o->callback((Fl_Callback*)cb_Run1);
+    } // Fl_Button* o
+    { Fl_Button* o = new Fl_Button(115, 15, 95, 40, "Run Projector");
+      o->callback((Fl_Callback*)cb_Run2);
+    } // Fl_Button* o
     uiw->end();
   } // Fl_Double_Window* uiw
 }
@@ -40,10 +50,14 @@ void GUI::show() {
   uiw->show();
 }
 
-void GUI::DBG_cb() {
-  scene->DBG();
+void GUI::RunInvis_cb() {
+  scene->RunInvisibility();
 }
 
-void GUI::NewButton_cb() {
-  scene->NewButton();
+void GUI::RunShadows_cb() {
+  scene->RunShadows();
+}
+
+void GUI::RunProjector_cb() {
+  scene->RunProjector();
 }

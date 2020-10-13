@@ -2,7 +2,7 @@
 version 1.0304
 header_name {.h}
 code_name {.cxx}
-class GUI {open selected
+class GUI {open
 } {
   decl {\#include "scene.h"} {private local
   }
@@ -10,17 +10,22 @@ class GUI {open selected
   } {
     Fl_Window uiw {
       label GUI open
-      xywh {552 345 199 197} type Double visible
+      xywh {420 275 326 69} type Double visible
     } {
       Fl_Button {} {
-        label DBG
-        callback {DBG_cb()}
-        xywh {15 15 95 40} selection_color 72
+        label {Run Invisibility}
+        callback {RunInvis_cb()} selected
+        xywh {215 15 95 40} selection_color 72
       }
-      Fl_Return_Button {} {
-        label NewButton
-        callback {NewButton_cb()}
-        xywh {30 80 110 100}
+      Fl_Button {} {
+        label {Run Shadows}
+        callback {RunShadows_cb()}
+        xywh {15 15 95 40}
+      }
+      Fl_Button {} {
+        label {Run Projector}
+        callback {RunProjector_cb()}
+        xywh {115 15 95 40}
       }
     }
   }
@@ -30,12 +35,16 @@ class GUI {open selected
   Function {show()} {} {
     code {uiw->show();} {}
   }
-  Function {DBG_cb()} {open
+  Function {RunInvis_cb()} {open
   } {
-    code {scene->DBG();} {}
+    code {scene->RunInvisibility();} {}
   }
-  Function {NewButton_cb()} {open
+  Function {RunShadows_cb()} {open
   } {
-    code {scene->NewButton();} {}
+    code {scene->RunShadows();} {}
+  }
+  Function {RunProjector_cb()} {open
+  } {
+    code {scene->RunProjector();} {}
   }
 }

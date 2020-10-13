@@ -168,7 +168,7 @@ Matrix3d Matrix3d::EdgeEquations(Vec3d v1, Vec3d v2, Vec3d v3)
 	float area = ret.GetColumn(2) * Vec3d::ONES;
 	if (area < 0)
 	{
-		ret = ret * -1;
+		//ret = ret * -1;
 		area = -area;
 	}
 

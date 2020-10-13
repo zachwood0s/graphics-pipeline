@@ -40,12 +40,12 @@ void WorldView::Render(Scene & scene, bool disableLighting)
 	fb->SetBGR(background.GetColor());
 	fb->ClearZB();
 
-	for (int tmi = 0; tmi < scene.tmeshesN; tmi++) 
+	for (int tmi = 0; tmi < scene.tmeshes.size(); tmi++) 
 	{
-		if (!scene.tmeshes[tmi].onFlag || hiddenMeshes.count(tmi))
+		if (!scene.tmeshes[tmi]->onFlag || hiddenMeshes.count(tmi))
 			continue;
 
-		scene.tmeshes[tmi].DrawModelSpaceInterpolated(scene, this, disableLighting);
+		scene.tmeshes[tmi]->DrawModelSpaceInterpolated(scene, this, disableLighting);
 	}
 
 	if (showCameraBox || showCameraScreen)
@@ -68,6 +68,8 @@ void WorldView::Render(Scene & scene, bool disableLighting)
 			}
 		}
 	}
+	for (auto light : scene.lights) Draw3DPoint(light->GetCenter(), 5, Vec3d::XAXIS);
+	for (auto proj : scene.projectors) Draw3DPoint(proj->GetCenter(), 5, Vec3d::YAXIS);
 	Redraw();
 }
 

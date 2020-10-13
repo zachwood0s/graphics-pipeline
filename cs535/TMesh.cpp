@@ -311,9 +311,14 @@ void TMesh::DrawModelSpaceInterpolated(Scene &scene, WorldView *view, Rect rende
 
 #pragma region Loading from file
 
-void TMesh::LoadBin(const char *fname) 
+void TMesh::LoadBin(const char *fname)
 {
-	/*
+	int trisN = 0;
+	int vertsN = 0;
+
+
+
+
 	ifstream ifs(fname, ios::binary);
 	if (ifs.fail()) {
 		cerr << "INFO: cannot open file: " << fname << endl;
@@ -327,27 +332,19 @@ void TMesh::LoadBin(const char *fname)
 		cerr << "INTERNAL ERROR: there should always be vertex xyz data" << endl;
 		return;
 	}
-	if (verts)
-		delete verts;
-	verts = new Vec3d[vertsN];
+	Vec3d *vertsArr = new Vec3d[vertsN];
 
 	ifs.read(&yn, 1); // cols 3 floats
-	if (colors)
-		delete colors;
-	colors = 0;
+	Vec3d *colorsArr = 0;
 	if (yn == 'y') {
-		colors = new Vec3d[vertsN];
+		colorsArr = new Vec3d[vertsN];
 	}
 
 	ifs.read(&yn, 1); // normals 3 floats
-	if (normals)
-		delete normals;
-	normals = 0;
+	Vec3d *normalsArr = 0;
 	if (yn == 'y') {
-		normals = new Vec3d[vertsN];
+		normalsArr = new Vec3d[vertsN];
 	}
-	normalsN = vertsN;
-	texsN = 0;
 
 	ifs.read(&yn, 1); // texture coordinates 2 floats
 	float *tcs = 0; // don't have texture coordinates for now
@@ -358,32 +355,39 @@ void TMesh::LoadBin(const char *fname)
 		tcs = new float[vertsN * 2];
 	}
 
-	ifs.read((char*)verts, vertsN * 3 * sizeof(float)); // load verts
+	ifs.read((char*)vertsArr, vertsN * 3 * sizeof(float)); // load verts
 
-	if (colors) {
-		ifs.read((char*)colors, vertsN * 3 * sizeof(float)); // load cols
+	if (colorsArr) {
+		ifs.read((char*)colorsArr, vertsN * 3 * sizeof(float)); // load cols
 	}
 
-	if (normals)
-		ifs.read((char*)normals, vertsN * 3 * sizeof(float)); // load normals
+	if (normalsArr)
+		ifs.read((char*)normalsArr, vertsN * 3 * sizeof(float)); // load normals
 
 	if (tcs)
 		ifs.read((char*)tcs, vertsN * 2 * sizeof(float)); // load texture coordinates
 
 	ifs.read((char*)&trisN, sizeof(int));
-	if (tris)
-		delete tris;
-	tris = new unsigned int[trisN * 3];
-	normalTris = tris;
-	texTris = tris;
-	texs = new Vec3d[vertsN]();
-	ifs.read((char*)tris, trisN * 3 * sizeof(unsigned int)); // read tiangles
+	unsigned int *trisArr = new unsigned int[trisN * 3];
+	ifs.read((char*)trisArr, trisN * 3 * sizeof(unsigned int)); // read tiangles
 
 	ifs.close();
 
 	std::cerr << "INFO: loaded " << vertsN << " verts, " << trisN << " tris from " << endl << "      " << fname << endl;
-	std::cerr << "      xyz " << ((colors) ? "rgb " : "") << ((normals) ? "nxnynz " : "") << ((tcs) ? "tcstct " : "") << endl;
-	*/
+
+	// copy into vectors
+	std::copy(vertsArr, vertsArr + vertsN, std::back_inserter(verts));
+	std::copy(colorsArr, colorsArr + vertsN, std::back_inserter(colors));
+	std::copy(normalsArr, normalsArr + vertsN, std::back_inserter(normals));
+	std::copy(trisArr, trisArr + trisN, std::back_inserter(tris));
+	std::copy(trisArr, trisArr + trisN, std::back_inserter(normalTris));
+	std::copy(trisArr, trisArr + trisN, std::back_inserter(texTris));
+	texs.resize(verts.size());
+
+	delete[] vertsArr;
+	delete[] colorsArr;
+	delete[] normalsArr;
+	delete[] trisArr;
 }
 
 static int ReadPolyIndices(const char *line, unsigned int (&_vi)[3], unsigned int (&_ti)[3], unsigned int (&_ni)[3])

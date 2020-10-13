@@ -18,13 +18,13 @@ public:
 	GUI *gui;
 	std::vector<WorldView*> views;
 	std::vector<Texture*> textures;
-	TMesh *tmeshes;
-	int tmeshesN;
+	std::vector<TMesh*> tmeshes;
 	Scene();
 	~Scene();
 	void DBG();
 	void NewButton();
 	void Render();
+	void Cleanup();
 
 	std::vector<Light*> lights;
 	std::vector<Projector*> projectors;
@@ -32,6 +32,10 @@ public:
 	TEX_HANDLE LoadTexture(const char *, bool isMipmap);
 
 	friend void WorldView::Render(Scene &scene, bool disableLighting);
+
+	void RunInvisibility();
+	void RunShadows();
+	void RunProjector();
 
 };
 

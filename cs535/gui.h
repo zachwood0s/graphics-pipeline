@@ -5,20 +5,22 @@
 #include <FL/Fl.H>
 #include <FL/Fl_Double_Window.H>
 #include <FL/Fl_Button.H>
-#include <FL/Fl_Return_Button.H>
 
 class GUI {
 public:
   GUI();
   Fl_Double_Window *uiw;
 private:
-  inline void cb_DBG_i(Fl_Button*, void*);
-  static void cb_DBG(Fl_Button*, void*);
-  inline void cb_NewButton_i(Fl_Return_Button*, void*);
-  static void cb_NewButton(Fl_Return_Button*, void*);
+  inline void cb_Run_i(Fl_Button*, void*);
+  static void cb_Run(Fl_Button*, void*);
+  inline void cb_Run1_i(Fl_Button*, void*);
+  static void cb_Run1(Fl_Button*, void*);
+  inline void cb_Run2_i(Fl_Button*, void*);
+  static void cb_Run2(Fl_Button*, void*);
 public:
   void show();
-  void DBG_cb();
-  void NewButton_cb();
+  void RunInvis_cb();
+  void RunShadows_cb();
+  void RunProjector_cb();
 };
 #endif

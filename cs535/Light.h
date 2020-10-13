@@ -10,13 +10,13 @@ private:
 
 public:
 	WorldView * shadowMap;
-	static constexpr float SHADOW_EPS = 0.04f;
+	static constexpr float SHADOW_EPS = 0.05f;
 	Light(Vec3d center, int shadowResX, int shadowResY, float fov);
 	~Light();
 
-	float constant = 1.0f;
-	float linear = 0.09f;
-	float quadradic = 0.032f;
+	float constant = 0.8f;
+	float linear = 0.0045f;
+	float quadradic = 0.000075f; // Really powerful point lighs
 
 	float ambient = .1f;
 	float diffuse = .8f;
