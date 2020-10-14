@@ -6,6 +6,9 @@
 
 #include "framebuffer.h"
 
+/// <summary>
+/// This is a simple wrapper around the FL_GL_Window class
+/// </summary>
 class FLWindow : public Fl_Gl_Window
 {
 private:

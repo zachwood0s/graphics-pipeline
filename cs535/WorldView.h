@@ -9,6 +9,14 @@
 
 class Scene;
 
+/// <summary>
+/// A world view is essentially a framebuffer with an attached camera. A few of the framebuffer drawing
+/// functions have been ported into this class to make them easier to use without haveing to pass the camera
+/// and framebuffer into each. 
+/// 
+/// This class can also have a window associated with it if a name and window position are provided in the constructor.
+/// Without those parameters it essentially acts as a 'fancy' frame buffer.
+/// </summary>
 class WorldView
 {
 private:
@@ -26,7 +34,14 @@ public:
 	Vec3d colorCameraPoint;
 	Vec3d background;
 
+	/// <summary>
+	/// These shaders describe what should happen for each pixel after the interpolation of a mesh has happened
+	/// </summary>
 	std::vector<Shader> shaders;
+
+	/// <summary>
+	/// A set of mesh indices that should not be rendered in this view.
+	/// </summary>
 	std::unordered_set<int> hiddenMeshes;
 
 	/// <summary>

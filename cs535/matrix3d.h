@@ -62,13 +62,52 @@ public:
 	/// <param name="theta">The rotation amount in degrees</param>
 	void SetRotateZ(const float theta);
 
-
+	/// <summary>
+	/// Creates a screen space interpolation matrix from the matrix of 3D points (1 point for each triangle vertex);
+	/// </summary>
+	/// <param name="points">Matrix of triangle points</param>
+	/// <returns>The screen space interpolation matrix</returns>
 	static Matrix3d ScreenSpaceInterp(Matrix3d points);
+
+	/// <summary>
+	/// Creates a screen space interpolation matrix from the points of a triangle 
+	/// </summary>
+	/// <returns>The screen space interpolation matrix</returns>
 	static Matrix3d ScreenSpaceInterp(Vec3d v1, Vec3d v2, Vec3d v3);
+
+	/// <summary>
+	/// Creates a model space interpolation matrix (perspecitvely correct) from the points of a triangle in matrix form.
+	/// </summary>
+	/// <param name="points">Matrix of triangle points</param>
+	/// <param name="ppc">The camera of the current world view</param>
+	/// <returns>The model space interpolation matrix</returns>
 	static Matrix3d ModelSpaceInterp(Matrix3d points, PPC *ppc);
+
+	/// <summary>
+	/// Creates a model space interpolation matrix (perspecitvely correct) from the points of a triangle.
+	/// </summary>
+	/// <param name="ppc">The camera of the current world view</param>
+	/// <returns>The model space interpolation matrix</returns>
 	static Matrix3d ModelSpaceInterp(Vec3d v1, Vec3d v2, Vec3d v3, PPC *ppc);
-	static Matrix3d EdgeEquations(Vec3d v1, Vec3d v2, Vec3d v3);
+
+	/// <summary>
+	/// Sets up a matrix of edge equations from the points of a triangle in matrix form.
+	/// </summary>
+	/// <param name="points">Matrix of triangle points</param>
+	/// <returns>A matrix containing the edge equations for a triangle</returns>
 	static Matrix3d EdgeEquations(Matrix3d points);
+
+	/// <summary>
+	/// Sets up a matrix of edge equations from the points of a triangle.
+	/// </summary>
+	/// <returns>A matrix containing the edge equations for a triangle</returns>
+	static Matrix3d EdgeEquations(Vec3d v1, Vec3d v2, Vec3d v3);
+
+	/// <summary>
+	/// Calculates the area of a triangle based the points in matrix form
+	/// </summary>
+	/// <param name="triangle">Matrix of triangle points</param>
+	/// <returns>The area of the triangle</returns>
 	static float TriangleArea(Matrix3d triangle);
 };
 

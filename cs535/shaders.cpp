@@ -23,7 +23,7 @@ Vec3d Shaders::phongShading(ShaderInputs input)
 Vec3d Shaders::depthShading(ShaderInputs input)
 {
 	// Show a depth map
-	float val = 1 - 1 / (1 + input.interp.zVal);
+	float val = 1 / input.interp.zVal;
 	return Vec3d(val, val, val);
 }
 
