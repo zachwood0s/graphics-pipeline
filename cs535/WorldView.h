@@ -20,9 +20,9 @@ class Scene;
 class WorldView
 {
 private:
-	PPC *ppc;
-	FrameBuffer *fb;
-	FLWindow *window;
+	std::unique_ptr<PPC> ppc;
+	std::unique_ptr<FrameBuffer> fb;
+	std::unique_ptr<FLWindow> window;
 
 public:
 	int id;
@@ -53,7 +53,6 @@ public:
 	/// Creates a world view without a window attached.
 	/// </summary>
 	WorldView(int bufferW, int bufferH, float hfov, int _id);
-	~WorldView();
 
 	void Render(Scene &scene, bool disableLighting);
 	void Redraw();

@@ -16,9 +16,9 @@ class Scene {
 public:
 
 	GUI *gui;
-	std::vector<WorldView*> views;
-	std::vector<Texture*> textures;
-	std::vector<TMesh*> tmeshes;
+	std::vector<std::unique_ptr<WorldView>> views;
+	std::vector<std::unique_ptr<Texture>> textures;
+	std::vector<std::unique_ptr<TMesh>> tmeshes;
 	Scene();
 	~Scene();
 	void DBG();
@@ -26,8 +26,8 @@ public:
 	void Render();
 	void Cleanup();
 
-	std::vector<Light*> lights;
-	std::vector<Projector*> projectors;
+	std::vector<std::unique_ptr<Light>> lights;
+	std::vector<std::unique_ptr<Projector>> projectors;
 
 	TEX_HANDLE LoadTexture(const char *, bool isMipmap);
 

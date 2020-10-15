@@ -18,7 +18,7 @@ bool Projector::GetColorAt3dPoint(Scene &scene, Vec3d point, Vec3d &color)
 
 	if (texture != TEX_INVALID)
 	{
-		auto tex = scene.textures[texture];
+		auto& tex = scene.textures[texture];
 
 		if (projected[0] < 0 || projected[1] < 0 || projected[0] > tex->w || projected[1] > tex->h)
 			return false;

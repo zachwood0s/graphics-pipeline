@@ -29,42 +29,18 @@ Scene::~Scene()
 
 void Scene::Cleanup()
 {
-	for (auto world : views)
-	{
-		delete world;
-	}
-
-	for (auto tex : textures)
-	{
-		delete tex;
-	}
-
-	for (auto light : lights)
-	{
-		delete light;
-	}
-
-	for (auto projector : projectors)
-	{
-		delete projector;
-	}
-
-	for (auto mesh : tmeshes)
-	{
-		delete mesh;
-	}
-
 	views.clear();
 	textures.clear();
 	lights.clear();
 	tmeshes.clear();
-
+	lights.clear();
+	projectors.clear();
 }
 
 void Scene::Render() 
 {
 	auto t1 = std::chrono::high_resolution_clock::now();
-	for (auto world : views)
+	for (auto& world : views)
 	{
 		world->Render(*this, false);
 	}
@@ -118,54 +94,54 @@ void Scene::RunShadows()
 	Vec3d cameraStart(0.0f, 40.0f, 30.0f);
 
 	// Create the stationary camera world view
-	WorldView * world = new WorldView("Simple Shadow Demo", u0, v0 + h + 20, w, h, hfov, (int) views.size());
+	auto world = std::make_unique<WorldView>("Simple Shadow Demo", u0, v0 + h + 20, w, h, hfov, (int) views.size());
 	world->background.SetFromColor(0xFFFFFFFF);
 	world->kAmbient = .05f;
 	world->GetPPC()->ZoomFocalLength(.5f);
 	world->GetPPC()->SetPose(cameraStart, Vec3d::ZEROS, Vec3d::YAXIS);
 	world->shaders.push_back(Shaders::phongShading);
-	views.push_back(world);
+	views.push_back(std::move(world));
 
 	TEX_HANDLE checker = LoadTexture("textures/checker.tiff", false);
 	TEX_HANDLE head = LoadTexture("textures/fox_head_color.tiff", false);
 
 	// Bottom plane
-	auto mesh = new TMesh();
+	auto mesh = std::make_unique<TMesh>();
 	mesh->LoadObj("geometry/plane.obj");
 	mesh->ScaleTo(100);
 	mesh->SetCenter(Vec3d(0.0f, 0.0f, 0.0f));
 	mesh->SetMaterial({ Vec3d::ONES * .1f, 32, 0.9f, TEX_INVALID });
 	mesh->onFlag = true;
-	tmeshes.push_back(mesh);
+	tmeshes.push_back(std::move(mesh));
 
 	// Complex blocker
-	mesh = new TMesh();
+	mesh = std::make_unique<TMesh>();
 	mesh->LoadObj("geometry/fox.obj");
 	mesh->ScaleTo(30);
 	mesh->SetCenter(Vec3d(-10.0f, 10.0f, -5.0f));
 	mesh->SetMaterial({ Vec3d::ONES * .1f, 32, 0.9f, head });
 	mesh->onFlag = true;
-	tmeshes.push_back(mesh);
+	tmeshes.push_back(std::move(mesh));
 
 	// Complex reciever
-	mesh = new TMesh();
+	mesh = std::make_unique<TMesh>();
 	mesh->LoadObj("geometry/lamp.obj");
 	mesh->ScaleTo(30);
 	mesh->SetCenter(Vec3d(0.0f, 20.0f, 4.0f));
 	mesh->SetMaterial({ Vec3d::YAXIS * .1f, 32, 0.9f, TEX_INVALID });
 	mesh->onFlag = true;
-	tmeshes.push_back(mesh);
+	tmeshes.push_back(std::move(mesh));
 
 	Vec3d lightStart = Vec3d(0.0f, 40.0f, 2.0f);
 
-	auto light = new Light(lightStart, 512, 512, 90.0f);
-	lights.push_back(light);
-	light = new Light(lightStart, 512, 512, 90.0f);
-	lights.push_back(light);
-	light = new Light(lightStart, 512, 512, 90.0f);
-	lights.push_back(light);
-	light = new Light(lightStart, 512, 512, 90.0f);
-	lights.push_back(light);
+	auto light = std::make_unique<Light>(lightStart, 512, 512, 90.0f);
+	lights.push_back(std::move(light));
+	light = std::make_unique<Light>(lightStart, 512, 512, 90.0f);
+	lights.push_back(std::move(light));
+	light = std::make_unique<Light>(lightStart, 512, 512, 90.0f);
+	lights.push_back(std::move(light));
+	light = std::make_unique<Light>(lightStart, 512, 512, 90.0f);
+	lights.push_back(std::move(light));
 
 	{
 		int framesN = 300;
@@ -178,7 +154,7 @@ void Scene::RunShadows()
 			lights[2]->SetCenter(lights[2]->GetCenter() + Vec3d(-speed, 0.0f, -speed));
 			lights[3]->SetCenter(lights[3]->GetCenter() + Vec3d(speed, 0.0f, -speed));
 
-			for (auto light : lights) light->UpdateShadowMap(*this);
+			for (auto& light : lights) light->UpdateShadowMap(*this);
 			//sprintf_s(fname, "frames/shadows/frame_%d.tiff", i);
 			//views[0]->GetFB()->SaveAsTiff(fname);
 			Render();
@@ -202,29 +178,29 @@ void Scene::RunProjector()
 	TEX_HANDLE hello = LoadTexture("textures/hellotext.tiff", false);
 
 	// Create the stationary camera world view
-	WorldView * world = new WorldView("Projector Demo", u0, v0 + h + 20, w, h, hfov, (int) views.size());
+	auto world = std::make_unique<WorldView>("Projector Demo", u0, v0 + h + 20, w, h, hfov, (int) views.size());
 	world->background.SetFromColor(0xFFFFFFFF);
 	world->kAmbient = .05f;
 	world->GetPPC()->ZoomFocalLength(.5f);
 	world->GetPPC()->SetPose(cameraStart, Vec3d::ZEROS, Vec3d::YAXIS);
 	world->shaders.push_back(Shaders::phongShading);
 	world->shaders.push_back(Shaders::projectiveTextures);
-	views.push_back(world);
+	views.push_back(std::move(world));
 
-	auto mesh = new TMesh();
+	auto mesh = std::make_unique<TMesh>();
 	mesh->LoadObj("geometry/oceanScene.obj");
 	mesh->ScaleTo(10);
 	mesh->SetCenter(Vec3d::ZEROS);
 	mesh->onFlag = true;
 	mesh->SetMaterial({ Vec3d::ONES * .8f, 32, 0.9f, TEX_INVALID });
-	tmeshes.push_back(mesh);
+	tmeshes.push_back(std::move(mesh));
 
 	Vec3d lightStart = Vec3d(2.5f, 1.5f, 2.0f);
-	auto light = new Light(lightStart, 1024, 1024, 90.0f);
-	lights.push_back(light);
+	auto light = std::make_unique<Light>(lightStart, 1024, 1024, 90.0f);
+	lights.push_back(std::move(light));
 
-	Projector * projector = new Projector(lightStart, w, h, 90.0f, hello);
-	projectors.push_back(projector);
+	auto projector = std::make_unique<Projector>(lightStart, w, h, 90.0f, hello);
+	projectors.push_back(std::move(projector));
 
 
 
@@ -235,8 +211,8 @@ void Scene::RunProjector()
 		{
 			Vec3d n = projectors[0]->GetCenter().Rotate(Vec3d::ZEROS, Vec3d::YAXIS, 360.0 / framesN);
 			projectors[0]->SetCenter(n);
-			for (auto light : lights) light->UpdateShadowMap(*this);
-			for (auto projector : projectors) projector->UpdateShadowMap(*this);
+			for (auto& light : lights) light->UpdateShadowMap(*this);
+			for (auto& projector : projectors) projector->UpdateShadowMap(*this);
 			//sprintf_s(fname, "frames/projector/frame_%d.tiff", i);
 			//views[0]->GetFB()->SaveAsTiff(fname);
 			Render();
@@ -261,39 +237,39 @@ void Scene::RunInvisibility()
 	Vec3d cameraStart(0.0f, 50.0f, 200.0f);
 
 	// Create the stationary camera world view
-	WorldView * world = new WorldView("Audience Without the Effect", u0, v0 + h + 20, w, h, hfov, (int) views.size());
+	auto world = std::make_unique<WorldView>("Audience Without the Effect", u0, v0 + h + 20, w, h, hfov, (int) views.size());
 	world->background.SetFromColor(0xFFFFFFFF);
 	world->kAmbient = .05f;
 	world->GetPPC()->ZoomFocalLength(.5f);
 	world->GetPPC()->SetPose(cameraStart, Vec3d::ZEROS, Vec3d::YAXIS);
 	world->shaders.push_back(Shaders::invisibilityShader);
-	views.push_back(world);
+	views.push_back(std::move(world));
 
 	// Create the moving camera world view
-	world = new WorldView("Audience", u0, v0, w, h, hfov, (int) views.size());
+	world = std::make_unique<WorldView>("Audience", u0, v0, w, h, hfov, (int) views.size());
 	world->background.SetFromColor(0xFFFFFFFF);
 	world->GetPPC()->ZoomFocalLength(.5f);
 	world->kAmbient = .05f;
 	world->GetPPC()->SetPose(cameraStart, Vec3d::ZEROS, Vec3d::YAXIS);
 	world->shaders.push_back(Shaders::projectiveTextures);
-	views.push_back(world);
+	views.push_back(std::move(world));
 
 	// This won't be shown as a screen
-	world = new WorldView(w, h, hfov, (int) views.size());
+	world = std::make_unique<WorldView>(w, h, hfov, (int) views.size());
 	world->background.SetFromColor(0xFFFFFFFF);
 	world->kAmbient = .05f;
 	world->GetPPC()->ZoomFocalLength(.5f);
 	world->GetPPC()->SetPose(cameraStart, Vec3d::ZEROS, Vec3d::YAXIS);
 	world->hiddenMeshes.insert(0);
-	views.push_back(world);
+	views.push_back(std::move(world));
 
 	// Create the side-by-side render world
-	world = new WorldView(w*3, h, hfov, (int) views.size());
+	world = std::make_unique<WorldView>(w*3, h, hfov, (int) views.size());
 	world->background.SetFromColor(0xFFFFFFFF);
 	world->kAmbient = .05f;
 	world->GetPPC()->ZoomFocalLength(.5f);
 	world->GetPPC()->SetPose(cameraStart, Vec3d::ZEROS, Vec3d::YAXIS);
-	views.push_back(world);
+	views.push_back(std::move(world));
 
 	gui->uiw->position(u0 + w, v0 + h + 50);
 
@@ -306,55 +282,55 @@ void Scene::RunInvisibility()
 	TEX_HANDLE hello = LoadTexture("textures/hellotext.tiff", false);
 
 	// left cube
-	auto mesh = new TMesh();
+	auto mesh = std::make_unique<TMesh>();
 	mesh->LoadObj("geometry/cube.obj");
 	mesh->ScaleTo(60);
 	mesh->SetCenter(Vec3d(-80, 30, 40));
 	mesh->SetMaterial({ Vec3d::ONES * .1f, 32, 0.9f, checker });
 	mesh->onFlag = true;
-	tmeshes.push_back(mesh);
+	tmeshes.push_back(std::move(mesh));
 
 	// Bottom plane
-	mesh = new TMesh();
+	mesh = std::make_unique<TMesh>();
 	mesh->LoadObj("geometry/plane.obj");
 	mesh->ScaleTo(600);
 	mesh->SetCenter(Vec3d(0.0f, 0.0f, -70.0f));
 	mesh->SetMaterial({ Vec3d::ONES * .1f, 32, 0.9f, checker });
 	mesh->onFlag = true;
-	tmeshes.push_back(mesh);
+	tmeshes.push_back(std::move(mesh));
 
 	// Back plane
-	mesh = new TMesh();
+	mesh = std::make_unique<TMesh>();
 	mesh->LoadObj("geometry/plane.obj");
 	mesh->ScaleTo(600);
 	mesh->Rotate(Vec3d::ZEROS, Vec3d::XAXIS, 90.0f);
 	mesh->SetCenter(Vec3d(0.0f, 0.0f, -40.0f));
 	mesh->SetMaterial({ Vec3d::YAXIS * .1f, 8, 0.5f, mountains });
 	mesh->onFlag = true;
-	tmeshes.push_back(mesh);
+	tmeshes.push_back(std::move(mesh));
 
 	// Fox
-	mesh = new TMesh();
+	mesh = std::make_unique<TMesh>();
 	mesh->LoadObj("geometry/fox.obj");
 	mesh->ScaleTo(100);
 	mesh->SetCenter(Vec3d(0.0f, 30.0f, -0.0f));
 	mesh->SetMaterial({ Vec3d::ONES * .1f, 32, 0.9f, head });
 	mesh->onFlag = true;
-	tmeshes.push_back(mesh);
+	tmeshes.push_back(std::move(mesh));
 
 	// Cube with hole
-	mesh = new TMesh();
+	mesh = std::make_unique<TMesh>();
 	mesh->LoadObj("geometry/cube.obj");
 	mesh->ScaleTo(110);
 	mesh->SetCenter(Vec3d(-5.0f, 30, -0));
 	mesh->SetMaterial({ Vec3d::ONES * .1f, 32, 0.1f, hole });
 	mesh->onFlag = true;
-	tmeshes.push_back(mesh);
+	tmeshes.push_back(std::move(mesh));
 
 	// Create the projector
-	Projector * projector = new Projector(Vec3d(50, 100, 230), w, h, 90.0f, TEX_INVALID);
+	auto projector = std::make_unique<Projector>(Vec3d(50, 100, 230), w, h, 90.0f, TEX_INVALID);
 	projector->shadowMap->shaders.pop_back();
-	projectors.push_back(projector);
+	projectors.push_back(std::move(projector));
 
 	Render();
 
@@ -415,7 +391,7 @@ void Scene::DBG()
 		Vec3d p2 = Vec3d(200, 150, 0);
 		Vec3d p3 = Vec3d(0, 150, -200);
 		ppc2->SetPose(p2, Vec3d::ZEROS, Vec3d::YAXIS);
-		Light *light = scene->lights[0];
+		auto& light = scene->lights[0];
 
 		projectors[0]->UpdateShadowMap(*this);
 		light->UpdateShadowMap(*this);
@@ -457,10 +433,9 @@ void Scene::DBG()
 
 TEX_HANDLE Scene::LoadTexture(const char * filename, bool isMipmap)
 {
-	Texture * buffer = new Texture(0, 0);
+	auto buffer = std::make_unique<Texture>(0, 0);
 	if (!buffer->LoadTiff(filename))
 	{
-		delete buffer;
 		return TEX_INVALID;
 	}
 
@@ -475,7 +450,7 @@ TEX_HANDLE Scene::LoadTexture(const char * filename, bool isMipmap)
 	}
 
 	
-	textures.push_back(buffer);
+	textures.push_back(std::move(buffer));
 	return (TEX_HANDLE) textures.size() - 1;
 }
 

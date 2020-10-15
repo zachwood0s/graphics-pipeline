@@ -12,7 +12,7 @@ Vec3d Shaders::phongShading(ShaderInputs input)
 	// Light vector
 	Vec3d viewDir = (input.view.GetPPC()->C - input.currP3D).Normalized();
 	Vec3d currColor = input.currColor * input.view.kAmbient;
-	for (auto light : input.scene.lights)
+	for (auto& light : input.scene.lights)
 	{
 		if (!light->IsInShadow(input.currP3D))
 			currColor = currColor + light->LightPixel(input.currP3D, input.currColor, normalVector, viewDir, input.mat);
@@ -30,7 +30,7 @@ Vec3d Shaders::depthShading(ShaderInputs input)
 Vec3d Shaders::projectiveTextures(ShaderInputs input)
 {
 	Vec3d currColor = input.currColor;
-	for (auto projector : input.scene.projectors)
+	for (auto& projector : input.scene.projectors)
 	{
 		if (!projector->IsInShadow(input.currP3D))
 		{
@@ -46,8 +46,8 @@ Vec3d Shaders::projectiveTextures(ShaderInputs input)
 
 Vec3d Shaders::invisibilityShader(ShaderInputs input)
 {
-	WorldView * viewBlank = input.scene.views[2];
-	WorldView * viewProjector = input.scene.projectors[0]->shadowMap;
+	auto& viewBlank = input.scene.views[2];
+	auto& viewProjector = input.scene.projectors[0]->shadowMap;
 
 	// Find color that we should draw from the blank scene
 	Vec3d colorOfPixel = Vec3d::FromColor(viewBlank->GetFB()->Get((int)input.currPScreen[0], (int)input.currPScreen[1]));

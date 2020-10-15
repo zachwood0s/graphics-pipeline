@@ -18,6 +18,7 @@ public:
 
 	int w, h;
 	FrameBuffer(int _w, int _h);
+	~FrameBuffer();
 
 	void SetBGR(unsigned int bgr);
 	void Set(int u, int v, unsigned int color);

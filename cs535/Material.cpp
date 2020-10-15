@@ -20,7 +20,7 @@ std::tuple<Vec3d, float> Material::GetColor(Scene &scene, Vec3d point, Vec3d tex
 {
 	if (texture != TEX_INVALID)
 	{
-		auto tex = scene.textures[texture];
+		auto& tex = scene.textures[texture];
 		return tex->GetTexVal(point, texDeltas);
 	}
 	else

@@ -6,16 +6,12 @@
 
 
 
-Light::Light(Vec3d _center, int shadowResX, int shadowResY, float fov) : center(_center), shadowMap(new WorldView("Projector", 680, 200, shadowResX, shadowResY, fov, -1))
+Light::Light(Vec3d _center, int shadowResX, int shadowResY, float fov) 
+	: center(_center), shadowMap(std::make_unique<WorldView>("Projector", 680, 200, shadowResX, shadowResY, fov, -1))
 {
 	
 	shadowMap->GetPPC()->SetPose(center, Vec3d::ZEROS, Vec3d::YAXIS);
 	shadowMap->shaders.push_back(Shaders::depthShading);
-}
-
-Light::~Light()
-{
-	delete shadowMap;
 }
 
 

@@ -12,10 +12,9 @@ private:
 	Vec3d center;
 
 public:
-	WorldView * shadowMap;
+	std::unique_ptr<WorldView> shadowMap;
 	static constexpr float SHADOW_EPS = 0.05f;
 	Light(Vec3d center, int shadowResX, int shadowResY, float fov);
-	~Light();
 
 	float constant = 0.8f;
 	float linear = 0.0045f;

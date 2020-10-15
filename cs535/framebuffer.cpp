@@ -22,6 +22,13 @@ FrameBuffer::FrameBuffer(int _w, int _h)
 
 }
 
+FrameBuffer::~FrameBuffer()
+{
+	delete[] pix;
+	delete[] zb;
+	delete[] ids;
+}
+
 #pragma region Get/Set
 
 void FrameBuffer::ClearZB() 
