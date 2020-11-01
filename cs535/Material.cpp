@@ -7,7 +7,7 @@ Material::Material(Vec3d _color, float phong, float spec)
 }
 
 Material::Material(Vec3d _color, float phong, float spec, TEX_HANDLE tex)
-	: color(_color), phongExponent(phong), kSpecular(spec), texture(tex)
+	: color(_color), phongExponent(phong), kSpecular(spec), texture(tex), reflectivity(0.0f)
 {
 }
 

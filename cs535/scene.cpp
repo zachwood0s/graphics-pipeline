@@ -82,6 +82,71 @@ void CopyIntoRender(Scene &scene)
 	}
 }
 
+void Scene::RunReflections() 
+{
+	Cleanup();
+
+	int u0 = 20;
+	int v0 = 20;
+	int h = 480;
+	int w = 640;
+	float hfov = 55.0f;
+	Vec3d cameraStart(0.0f, 0.0f, 30.0f);
+
+	scene->cubeMap = CubeMap::FromSingleTiff("textures/uffizi_cross.tiff", true);
+
+	auto world = std::make_unique<WorldView>("Simple Reflections demo", u0, v0 + h + 20, w, h, hfov, (int) views.size());
+	world->background.SetFromColor(0xFFFFFFFF);
+	world->kAmbient = .05f;
+	world->GetPPC()->ZoomFocalLength(.5f);
+	world->GetPPC()->SetPose(cameraStart, Vec3d::ZEROS, Vec3d::YAXIS);
+	world->shaders.push_back(Shaders::reflectionShader);
+	world->backgroundShader = Shaders::environmentMap;
+	views.push_back(std::move(world));
+
+	TEX_HANDLE checker = LoadTexture("textures/checker.tiff", false);
+	TEX_HANDLE head = LoadTexture("textures/fox_head_color.tiff", false);
+
+	// Main Teapot
+	auto mesh = std::make_unique<TMesh>();
+	mesh->LoadObj("geometry/teapot.obj");
+	mesh->ScaleTo(50);
+	mesh->SetCenter(Vec3d::ZEROS);
+	mesh->SetMaterial({ Vec3d::ONES * .99f, 32, 0.9f, TEX_INVALID });
+	mesh->GetMaterial().reflectivity = 1.0f;
+	mesh->onFlag = true;
+	tmeshes.push_back(std::move(mesh));
+
+	{
+		int framesN = 300;
+		char fname[40] = "";
+		auto ppc = views[0]->GetPPC();
+		Vec3d center = ppc->C;
+		
+		for (int i = 0; i < framesN; i++)
+		{
+			center = center.Rotate(Vec3d::ZEROS, Vec3d::YAXIS, 180.0f / framesN);
+			ppc->SetPose(center, Vec3d::ZEROS, Vec3d::YAXIS);
+
+			sprintf_s(fname, "frames/reflections/frame_%d.tiff", i);
+			views[0]->GetFB()->SaveAsTiff(fname);
+			Render();
+			Fl::check();
+		}
+		for (int i = 0; i < framesN; i++)
+		{
+			center = center.Rotate(Vec3d::ZEROS, Vec3d::XAXIS, 180.0f / framesN);
+			center = center.Rotate(Vec3d::ZEROS, Vec3d::YAXIS, 3.0f / framesN); // To prevent jarring flip at the top
+			ppc->SetPose(center, Vec3d::ZEROS, Vec3d::YAXIS);
+
+			sprintf_s(fname, "frames/reflections/frame_%d.tiff", i + framesN);
+			views[0]->GetFB()->SaveAsTiff(fname);
+			Render();
+			Fl::check();
+		}
+	}
+}
+
 void Scene::RunShadows() 
 {
 	Cleanup();
@@ -93,9 +158,13 @@ void Scene::RunShadows()
 	float hfov = 55.0f;
 	Vec3d cameraStart(0.0f, 40.0f, 30.0f);
 
+	//scene->cubeMap = CubeMap::FromSingleTiff("textures/uffizi_cross.tiff", true);
+
 	// Create the stationary camera world view
 	auto world = std::make_unique<WorldView>("Simple Shadow Demo", u0, v0 + h + 20, w, h, hfov, (int) views.size());
 	world->background.SetFromColor(0xFFFFFFFF);
+	//world->showCameraBox = true;
+	//world->showCameraScreen = true;
 	world->kAmbient = .05f;
 	world->GetPPC()->ZoomFocalLength(.5f);
 	world->GetPPC()->SetPose(cameraStart, Vec3d::ZEROS, Vec3d::YAXIS);
@@ -111,6 +180,7 @@ void Scene::RunShadows()
 	mesh->ScaleTo(100);
 	mesh->SetCenter(Vec3d(0.0f, 0.0f, 0.0f));
 	mesh->SetMaterial({ Vec3d::ONES * .1f, 32, 0.9f, TEX_INVALID });
+	mesh->GetMaterial().reflectivity = 0.7f;
 	mesh->onFlag = true;
 	tmeshes.push_back(std::move(mesh));
 
@@ -119,7 +189,8 @@ void Scene::RunShadows()
 	mesh->LoadObj("geometry/fox.obj");
 	mesh->ScaleTo(30);
 	mesh->SetCenter(Vec3d(-10.0f, 10.0f, -5.0f));
-	mesh->SetMaterial({ Vec3d::ONES * .1f, 32, 0.9f, head });
+	mesh->SetMaterial({ Vec3d::ZAXIS, 32, 0.9f, TEX_INVALID });
+	mesh->GetMaterial().reflectivity = 0.3f;
 	mesh->onFlag = true;
 	tmeshes.push_back(std::move(mesh));
 
@@ -128,7 +199,8 @@ void Scene::RunShadows()
 	mesh->LoadObj("geometry/lamp.obj");
 	mesh->ScaleTo(30);
 	mesh->SetCenter(Vec3d(0.0f, 20.0f, 4.0f));
-	mesh->SetMaterial({ Vec3d::YAXIS * .1f, 32, 0.9f, TEX_INVALID });
+	mesh->SetMaterial({ Vec3d::YAXIS, 32, 0.9f, TEX_INVALID });
+	mesh->GetMaterial().reflectivity = 1.0f;
 	mesh->onFlag = true;
 	tmeshes.push_back(std::move(mesh));
 
@@ -142,9 +214,8 @@ void Scene::RunShadows()
 	lights.push_back(std::move(light));
 	light = std::make_unique<Light>(lightStart, 512, 512, 90.0f);
 	lights.push_back(std::move(light));
-
 	{
-		int framesN = 300;
+		int framesN = 360;
 		char fname[30] = "";
 		for (int i = 0; i < framesN; i++)
 		{
@@ -161,7 +232,6 @@ void Scene::RunShadows()
 			Fl::check();
 		}
 	}
-
 }
 
 void Scene::RunProjector() 
@@ -328,7 +398,7 @@ void Scene::RunInvisibility()
 	tmeshes.push_back(std::move(mesh));
 
 	// Create the projector
-	auto projector = std::make_unique<Projector>(Vec3d(50, 100, 230), w, h, 90.0f, TEX_INVALID);
+	auto projector = std::make_unique<Projector>(Vec3d(50, 100, 230), w*2, h*2, 90.0f, TEX_INVALID);
 	projector->shadowMap->shaders.pop_back();
 	projectors.push_back(std::move(projector));
 
@@ -433,7 +503,7 @@ void Scene::DBG()
 
 TEX_HANDLE Scene::LoadTexture(const char * filename, bool isMipmap)
 {
-	auto buffer = std::make_unique<Texture>(0, 0);
+	auto buffer = std::make_unique<FrameBuffer>(0, 0);
 	if (!buffer->LoadTiff(filename))
 	{
 		return TEX_INVALID;

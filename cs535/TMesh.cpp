@@ -533,7 +533,7 @@ void TMesh::Rotate(Vec3d axisOrigin, Vec3d axisDir, float theta)
 	}
 	for (int ni = 0; ni < normals.size(); ni++)
 	{
-		normals[ni] = normals[ni].Rotate(axisOrigin, axisDir, theta);
+		normals[ni] = normals[ni].Rotate(axisDir, theta);
 	}
 }
 

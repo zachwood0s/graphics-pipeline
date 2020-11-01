@@ -10,22 +10,27 @@ class GUI {open
   } {
     Fl_Window uiw {
       label GUI open
-      xywh {420 275 326 69} type Double visible
+      xywh {445 272 415 69} type Double visible
     } {
       Fl_Button {} {
         label {Run Invisibility}
-        callback {RunInvis_cb()} selected
-        xywh {215 15 95 40} selection_color 72
+        callback {RunInvis_cb()}
+        xywh {315 15 95 40} selection_color 72
       }
       Fl_Button {} {
         label {Run Shadows}
         callback {RunShadows_cb()}
-        xywh {15 15 95 40}
+        xywh {115 15 95 40}
       }
       Fl_Button {} {
         label {Run Projector}
         callback {RunProjector_cb()}
-        xywh {115 15 95 40}
+        xywh {215 15 95 40}
+      }
+      Fl_Button {} {
+        label {Run Reflections}
+        callback {RunReflections_cb()}
+        xywh {5 15 105 40}
       }
     }
   }
@@ -46,5 +51,10 @@ class GUI {open
   Function {RunProjector_cb()} {open
   } {
     code {scene->RunProjector();} {}
+  }
+  Function {RunReflections_cb()} {open
+  } {
+    code {scene->RunReflections();} {selected
+    }
   }
 }

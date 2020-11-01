@@ -54,7 +54,7 @@ Vec3d Shaders::invisibilityShader(ShaderInputs input)
 
 	if (!input.scene.projectors[0]->IsInShadow(input.currP3D))
 	{
-		// Now find where that should be drawn on our projector as
+		// Now find where that should be drawn on our projector as:w
 		Vec3d projectedCam;
 		if (!viewProjector->GetPPC()->Project(input.currP3D, projectedCam))
 			return input.currColor;
@@ -64,4 +64,36 @@ Vec3d Shaders::invisibilityShader(ShaderInputs input)
 	}
 
 	return input.currColor;
+}
+
+Vec3d Shaders::reflectionShader(ShaderInputs input)
+{
+	Vec3d outColor = input.currColor;
+	if (input.scene.cubeMap)
+	{
+		Vec3d viewV = (input.currP3D - input.view.GetPPC()->C).Normalized();
+		Vec3d reflected = (viewV).Reflect(input.interp.normals).Normalized();
+		Vec3d reflectedColor = Vec3d::FromColor(input.scene.cubeMap->Lookup(reflected));
+		outColor = Vec3d::Interpolate(outColor, reflectedColor, input.mat.reflectivity);
+	}
+	return outColor;
+}
+
+void Shaders::solidBackground(Scene &scene, WorldView &view)
+{
+	view.GetFB()->SetBGR(view.background.GetColor());
+}
+
+void Shaders::environmentMap(Scene &scene, WorldView &view)
+{
+	auto fb = view.GetFB();
+	auto ppc = view.GetPPC();
+	for (int i = 0; i < fb->w; i++)
+	{
+		for (int j = 0; j < fb->h; j++)
+		{
+			Vec3d P = ppc->UnProject(Vec3d(i, j, 1.0f));
+			fb->Set(i, j, scene.cubeMap->Lookup(P - ppc->C));
+		}
+	}
 }

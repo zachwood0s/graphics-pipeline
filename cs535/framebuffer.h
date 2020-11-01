@@ -12,9 +12,15 @@ constexpr auto TEX_INVALID = -1;
 
 class FrameBuffer{
 public:
+	static const int LOD_BIAS = 0;
 	unsigned int *pix; // pixel array
 	float *zb;
 	int *ids; // ids of the triangle that set the pixel
+
+	bool isMipmap;
+	unsigned int mipW;
+	unsigned int mipH;
+	unsigned int levels;
 
 	int w, h;
 	FrameBuffer(int _w, int _h);
@@ -24,6 +30,14 @@ public:
 	void Set(int u, int v, unsigned int color);
 	void Set(int u, int v, unsigned int color, int id);
 	void SetZ(int u, int v, float zVal);
+
+	void SetAsMipmap(int h);
+
+	std::tuple<Vec3d, float> GetTexVal(Vec3d texCoords, Vec3d texDeltas);
+	std::tuple<Vec3d, float> GetTexVal(Vec3d texCoords, int lod);
+	std::tuple<Vec3d, float> GetTexVal(int s, int t);
+
+	float GetTexAlpha(int s, int t);
 
 #pragma region Drawing Functions
 

@@ -20,6 +20,7 @@ struct ShaderInputs
 };
 
 using Shader = std::function<Vec3d(ShaderInputs inputs)>;
+using BackgroundShader = std::function<void(Scene &scene, WorldView &view)>;
 
 namespace Shaders
 {
@@ -27,4 +28,8 @@ namespace Shaders
 	Vec3d depthShading(ShaderInputs inputs);
 	Vec3d projectiveTextures(ShaderInputs inputs);
 	Vec3d invisibilityShader(ShaderInputs inputs);
+	Vec3d reflectionShader(ShaderInputs inputs);
+
+	void solidBackground(Scene &scene, WorldView &view);
+	void environmentMap(Scene &scene, WorldView &view);
 }

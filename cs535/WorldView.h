@@ -40,6 +40,11 @@ public:
 	std::vector<Shader> shaders;
 
 	/// <summary>
+	/// This shader draws the background before anything else. Can be used for environment mapping of background drawing
+	/// </summary>
+	BackgroundShader backgroundShader;
+
+	/// <summary>
 	/// A set of mesh indices that should not be rendered in this view.
 	/// </summary>
 	std::unordered_set<int> hiddenMeshes;

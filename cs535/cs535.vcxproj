@@ -137,6 +137,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="AABB.h" />
+    <ClInclude Include="CubeMap.h" />
     <ClInclude Include="FLWindow.h" />
     <ClInclude Include="framebuffer.h" />
     <ClInclude Include="glext.h" />
@@ -150,13 +151,13 @@
     <ClInclude Include="scene.h" />
     <ClInclude Include="shaders.h" />
     <ClInclude Include="stdafx.h" />
-    <ClInclude Include="Texture.h" />
     <ClInclude Include="TMesh.h" />
     <ClInclude Include="vec3d.h" />
     <ClInclude Include="WorldView.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AABB.cpp" />
+    <ClCompile Include="CubeMap.cpp" />
     <ClCompile Include="FLWindow.cpp" />
     <ClCompile Include="framebuffer.cpp" />
     <ClCompile Include="gui.cxx" />
@@ -168,7 +169,6 @@
     <ClCompile Include="scene.cpp" />
     <ClCompile Include="shaders.cpp" />
     <ClCompile Include="stdafx.cpp" />
-    <ClCompile Include="Texture.cpp" />
     <ClCompile Include="TMesh.cpp" />
     <ClCompile Include="vec3d.cpp" />
     <ClCompile Include="WorldView.cpp" />

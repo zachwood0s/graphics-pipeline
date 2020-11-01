@@ -29,6 +29,7 @@ public:
 	Vec3d color;
 	float phongExponent;
 	float kSpecular;
+	float reflectivity;
 
 	TEX_HANDLE texture = TEX_INVALID;
 };

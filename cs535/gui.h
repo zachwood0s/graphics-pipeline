@@ -17,10 +17,13 @@ private:
   static void cb_Run1(Fl_Button*, void*);
   inline void cb_Run2_i(Fl_Button*, void*);
   static void cb_Run2(Fl_Button*, void*);
+  inline void cb_Run3_i(Fl_Button*, void*);
+  static void cb_Run3(Fl_Button*, void*);
 public:
   void show();
   void RunInvis_cb();
   void RunShadows_cb();
   void RunProjector_cb();
+  void RunReflections_cb();
 };
 #endif

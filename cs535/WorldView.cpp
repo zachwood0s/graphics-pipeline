@@ -21,11 +21,13 @@ WorldView::WorldView(int bufferW, int bufferH, float hFov, int _id)
 	colorCameraBox.SetFromColor(0xFFFF0000);
 	colorCameraPoint.SetFromColor(0xFF0000FF);
 	background.SetFromColor(0xFF000000);
+
+	backgroundShader = Shaders::solidBackground;
 }
 
 void WorldView::Render(Scene & scene, bool disableLighting)
 {
-	fb->SetBGR(background.GetColor());
+	backgroundShader(scene, *this);
 	fb->ClearZB();
 
 	for (int tmi = 0; tmi < scene.tmeshes.size(); tmi++) 
@@ -55,9 +57,26 @@ void WorldView::Render(Scene & scene, bool disableLighting)
 				world->GetPPC()->Visualize(this, world.get(), cameraVf);
 			}
 		}
+		if (scene.cubeMap)
+		{
+			for (auto& world : scene.cubeMap->views)
+			{
+				if (showCameraBox)
+				{
+					// Draw the camera boxes
+					world->GetPPC()->Visualize(this, cameraVf, colorCameraBox, colorCameraPoint);
+				}
+				if (showCameraScreen)
+				{
+					// Draw the camera boxes
+					world->GetPPC()->Visualize(this, world.get(), cameraVf);
+				}
+			}
+		}
 	}
 	for (auto& light : scene.lights) Draw3DPoint(light->GetCenter(), 5, Vec3d::XAXIS);
 	for (auto& proj : scene.projectors) Draw3DPoint(proj->GetCenter(), 5, Vec3d::YAXIS);
+
 	Redraw();
 }
 
