@@ -11,7 +11,24 @@ FLWindow::FLWindow(int u0, int v0, FrameBuffer* _buffer, const char* label)
 
 void FLWindow::draw() 
 {
-	glDrawPixels(buffer->w, buffer->h, GL_RGBA, GL_UNSIGNED_BYTE, buffer->pix);
+	if (!buffer->isHW)
+	{
+		glDrawPixels(buffer->w, buffer->h, GL_RGBA, GL_UNSIGNED_BYTE, buffer->pix);
+		return;
+	}
+
+	scene->PerSessionHWInit();
+
+	if (buffer->isHW == 1)
+	{
+		scene->RenderHW();
+	}
+	else 
+	{
+		scene->RenderGPU();
+	}
+
+	glReadPixels(0, 0, buffer->w, buffer->h, GL_RGBA, GL_UNSIGNED_BYTE, buffer->pix);
 }
 
 int FLWindow::handle(int event) 
@@ -44,7 +61,8 @@ void FLWindow::KeyboardHandle()
 		scene->views[0]->GetPPC()->ZoomFocalLength(1.01f);
 		//scene->tmeshes[0].GetMaterial().kSpecular += 0.1f;
 		//scene->tmeshes[0].Rotate(Vec3d::ZEROS, Vec3d::ZAXIS, 5);
-		scene->Render();
+		//scene->Render();
+		redraw();
 		Fl::check();
 		break;
 	}
@@ -52,22 +70,23 @@ void FLWindow::KeyboardHandle()
 		scene->views[0]->GetPPC()->ZoomFocalLength(.99f);
 		//scene->tmeshes[0].GetMaterial().kSpecular += 0.1f;
 		//scene->tmeshes[0].Rotate(Vec3d::ZEROS, Vec3d::ZAXIS, -5);
-		scene->Render();
+		//scene->Render();
+		redraw();
 		Fl::check();
 		break;
 	}
 	case FL_Right: {
-		//scene->tmeshes[0]->Rotate(Vec3d::ZEROS, Vec3d::YAXIS, 5);
+		scene->tmeshes[0]->Rotate(Vec3d::ZEROS, Vec3d::YAXIS, 5);
 		//ppc->SetPose(ppc->C.Rotate(Vec3d::ZEROS, Vec3d::XAXIS, 5), Vec3d::ZEROS, Vec3d::YAXIS);
+		redraw();
 		Fl::check();
-		scene->Render();
 		break;
 	}
 	case FL_Left: {
-		//scene->tmeshes[0]->Rotate(Vec3d::ZEROS, Vec3d::YAXIS, -5);
+		scene->tmeshes[0]->Rotate(Vec3d::ZEROS, Vec3d::YAXIS, -5);
 		//ppc->SetPose(ppc->C.Rotate(Vec3d::ZEROS, Vec3d::XAXIS, -5), Vec3d::ZEROS, Vec3d::YAXIS);
+		redraw();
 		Fl::check();
-		scene->Render();
 		break;
 	}
 	}

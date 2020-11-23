@@ -306,7 +306,54 @@ void TMesh::DrawModelSpaceInterpolated(Scene &scene, WorldView *view, Rect rende
 			}
 		}
 	}
+}
 
+void TMesh::DrawHW()
+{
+	if (material.isWireframe)
+	{
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	}
+	else
+	{
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	}
+
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glEnableClientState(GL_COLOR_ARRAY);
+	glEnableClientState(GL_NORMAL_ARRAY);
+	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+	glVertexPointer(3, GL_FLOAT, 0, (float*)verts.data());
+	glColorPointer(3, GL_FLOAT, 0, (float*)colors.data());
+	glNormalPointer(GL_FLOAT, 0, (float*)normals.data());
+	glTexCoordPointer(2, GL_FLOAT, sizeof(float) * 3, (float*)texs.data());
+
+
+	if (material.texture != TEX_INVALID)
+	{
+		glEnable(GL_TEXTURE_2D);
+		glBindTexture(GL_TEXTURE_2D, material.texture);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	}
+	else
+	{
+		glDisable(GL_TEXTURE_2D);
+		glBindTexture(GL_TEXTURE_2D, scene->defaultTexture);
+	}
+
+	glDrawElements(GL_TRIANGLES, tris.size(), GL_UNSIGNED_INT, tris.data());
+
+	GLenum err;
+	while ((err = glGetError()) != GL_NO_ERROR)
+	{
+		// Process/log the error.
+		cout << glewGetErrorString(err) << endl;
+	}
+	glDisableClientState(GL_VERTEX_ARRAY);
+	glDisableClientState(GL_COLOR_ARRAY);
+	glDisableClientState(GL_NORMAL_ARRAY);
+	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 }
 
 #pragma region Loading from file
@@ -418,8 +465,8 @@ void TMesh::LoadObj(const char * fname)
 		return;
 	}
 
-	std::vector<unsigned int> vertexIndices, uvIndices, normalIndices;
-	std::vector<Vec3d> tempVerts, tempUvs, tempNormals;
+	std::vector<unsigned int> vertexIndices, normalIndices, texIndices;
+	std::vector<Vec3d> tempVerts, tempNormals, tempTexs;
 	verts.clear();
 	normals.clear();
 	texs.clear();
@@ -439,21 +486,21 @@ void TMesh::LoadObj(const char * fname)
 		{
 			Vec3d vertex;
 			fscanf_s(file, "%f %f %f\n", &vertex[0], &vertex[1], &vertex[2]);
-			verts.push_back(vertex);
+			tempVerts.push_back(vertex);
 		}
 		else if (strcmp(lineHeader, "vt") == 0)
 		{
 			Vec3d vertex;
 			vertex[2] = 0;
 			fscanf_s(file, "%f %f\n", &vertex[0], &vertex[1]);
-			vertex[1] = 1.0f - vertex[1]; // flip the y uv because we support texture coords with the y flipped
-			texs.push_back(vertex);
+			vertex[1] = vertex[1]; // flip the y uv because we support texture coords with the y flipped
+			tempTexs.push_back(vertex);
 		}
 		else if (strcmp(lineHeader, "vn") == 0)
 		{
 			Vec3d vertex;
 			fscanf_s(file, "%f %f %f\n", &vertex[0], &vertex[1], &vertex[2]);
-			normals.push_back(vertex);
+			tempNormals.push_back(vertex);
 		}
 		else if (strcmp(lineHeader, "f") == 0)
 		{
@@ -469,18 +516,28 @@ void TMesh::LoadObj(const char * fname)
 				return;
 			}
 			
-			tris.push_back(vertexIndex[0] - 1);
-			tris.push_back(vertexIndex[1] - 1);
-			tris.push_back(vertexIndex[2] - 1);
-			texTris.push_back(uvIndex[0] - 1);
-			texTris.push_back(uvIndex[1] - 1);
-			texTris.push_back(uvIndex[2] - 1);
-			normalTris.push_back(normalIndex[0] - 1);
-			normalTris.push_back(normalIndex[1] - 1);
-			normalTris.push_back(normalIndex[2] - 1);
+			vertexIndices.push_back(vertexIndex[0] - 1);
+			vertexIndices.push_back(vertexIndex[1] - 1);
+			vertexIndices.push_back(vertexIndex[2] - 1);
+			texIndices.push_back(uvIndex[0] - 1);
+			texIndices.push_back(uvIndex[1] - 1);
+			texIndices.push_back(uvIndex[2] - 1);
+			normalIndices.push_back(normalIndex[0] - 1);
+			normalIndices.push_back(normalIndex[1] - 1);
+			normalIndices.push_back(normalIndex[2] - 1);
 		}
 	}
-	colors.resize(verts.size());
+
+	for (int i = 0; i < vertexIndices.size(); i++)
+	{
+		verts.push_back(tempVerts[vertexIndices[i]]);
+		texs.push_back(tempTexs[texIndices[i]]);
+		normals.push_back(tempNormals[normalIndices[i]]);
+		colors.push_back(Vec3d::ONES);
+		tris.push_back(i);
+		texTris.push_back(i);
+		normalTris.push_back(i);
+	}
 
 
 	fclose(file);
@@ -518,6 +575,11 @@ void TMesh::SetMaterial(Material m)
 {
 	material = m;
 	hasMaterial = true;
+
+	for (auto& c : colors)
+	{
+		c.Set(m.color);
+	}
 }
 
 Material& TMesh::GetMaterial()

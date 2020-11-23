@@ -97,6 +97,7 @@ public:
 	void DrawWireFrame(WorldView * world, unsigned int color);
 	void DrawInterpolated(Scene &scene, WorldView * world);
 	void DrawModelSpaceInterpolated(Scene & scene, WorldView *world, bool disableLighting);
+	void DrawHW();
 
 	void LoadBin(const char *fname);
 	void LoadObj(const char *fname);

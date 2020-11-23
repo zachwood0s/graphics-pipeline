@@ -30,6 +30,7 @@ public:
 	float phongExponent;
 	float kSpecular;
 	float reflectivity;
+	bool isWireframe = false;
 
 	TEX_HANDLE texture = TEX_INVALID;
 };

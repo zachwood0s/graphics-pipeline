@@ -12,14 +12,12 @@ using namespace std;
 
 #include <iostream>
 
-Scene::Scene() 
+Scene::Scene()  
 {
-
 	gui = new GUI();
 	gui->show();
 
 	Render();
-
 }
 
 Scene::~Scene()
@@ -43,6 +41,32 @@ void Scene::Render()
 	for (auto& world : views)
 	{
 		world->Render(*this, false);
+	}
+	auto t2 = std::chrono::high_resolution_clock::now();
+	auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
+
+	std::cout << "Time: "<< duration << std::endl;
+}
+
+void Scene::RenderHW()
+{
+	auto t1 = std::chrono::high_resolution_clock::now();
+	for (auto& world : views)
+	{
+		world->RenderHW(*this);
+	}
+	auto t2 = std::chrono::high_resolution_clock::now();
+	auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
+
+	std::cout << "Time: "<< duration << std::endl;
+}
+
+void Scene::RenderGPU()
+{
+	auto t1 = std::chrono::high_resolution_clock::now();
+	for (auto& world : views)
+	{
+		world->RenderGPU(*this);
 	}
 	auto t2 = std::chrono::high_resolution_clock::now();
 	auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
@@ -112,7 +136,7 @@ void Scene::RunReflections()
 	mesh->LoadObj("geometry/teapot.obj");
 	mesh->ScaleTo(50);
 	mesh->SetCenter(Vec3d::ZEROS);
-	mesh->SetMaterial({ Vec3d::ONES * .99f, 32, 0.9f, TEX_INVALID });
+	mesh->SetMaterial({ Vec3d::ONES * .99f, 32, 0.9f, (GLuint) TEX_INVALID });
 	mesh->GetMaterial().reflectivity = 1.0f;
 	mesh->onFlag = true;
 	tmeshes.push_back(std::move(mesh));
@@ -128,8 +152,8 @@ void Scene::RunReflections()
 			center = center.Rotate(Vec3d::ZEROS, Vec3d::YAXIS, 180.0f / framesN);
 			ppc->SetPose(center, Vec3d::ZEROS, Vec3d::YAXIS);
 
-			sprintf_s(fname, "frames/reflections/frame_%d.tiff", i);
-			views[0]->GetFB()->SaveAsTiff(fname);
+			//sprintf_s(fname, "frames/reflections/frame_%d.tiff", i);
+			//views[0]->GetFB()->SaveAsTiff(fname);
 			Render();
 			Fl::check();
 		}
@@ -139,8 +163,8 @@ void Scene::RunReflections()
 			center = center.Rotate(Vec3d::ZEROS, Vec3d::YAXIS, 3.0f / framesN); // To prevent jarring flip at the top
 			ppc->SetPose(center, Vec3d::ZEROS, Vec3d::YAXIS);
 
-			sprintf_s(fname, "frames/reflections/frame_%d.tiff", i + framesN);
-			views[0]->GetFB()->SaveAsTiff(fname);
+			//sprintf_s(fname, "frames/reflections/frame_%d.tiff", i + framesN);
+			//views[0]->GetFB()->SaveAsTiff(fname);
 			Render();
 			Fl::check();
 		}
@@ -156,79 +180,96 @@ void Scene::RunShadows()
 	int h = 480;
 	int w = 640;
 	float hfov = 55.0f;
-	Vec3d cameraStart(0.0f, 40.0f, 30.0f);
+	Vec3d cameraStart(20.0f, 30.0f, 30.0f);
+
 
 	//scene->cubeMap = CubeMap::FromSingleTiff("textures/uffizi_cross.tiff", true);
 
 	// Create the stationary camera world view
 	auto world = std::make_unique<WorldView>("Simple Shadow Demo", u0, v0 + h + 20, w, h, hfov, (int) views.size());
-	world->background.SetFromColor(0xFFFFFFFF);
+	world->background.SetFromColor(0xFFFF0000);
+	world->SetMode(WorldView::GPU);
 	//world->showCameraBox = true;
 	//world->showCameraScreen = true;
 	world->kAmbient = .05f;
 	world->GetPPC()->ZoomFocalLength(.5f);
 	world->GetPPC()->SetPose(cameraStart, Vec3d::ZEROS, Vec3d::YAXIS);
-	world->shaders.push_back(Shaders::phongShading);
 	views.push_back(std::move(world));
-
-	TEX_HANDLE checker = LoadTexture("textures/checker.tiff", false);
-	TEX_HANDLE head = LoadTexture("textures/fox_head_color.tiff", false);
 
 	// Bottom plane
 	auto mesh = std::make_unique<TMesh>();
 	mesh->LoadObj("geometry/plane.obj");
-	mesh->ScaleTo(100);
+	mesh->ScaleTo(200);
 	mesh->SetCenter(Vec3d(0.0f, 0.0f, 0.0f));
-	mesh->SetMaterial({ Vec3d::ONES * .1f, 32, 0.9f, TEX_INVALID });
+	mesh->SetMaterial({ Vec3d::ONES * .9f, 32, 0.9f, (GLuint) TEX_INVALID });
 	mesh->GetMaterial().reflectivity = 0.7f;
-	mesh->onFlag = true;
 	tmeshes.push_back(std::move(mesh));
 
-	// Complex blocker
 	mesh = std::make_unique<TMesh>();
-	mesh->LoadObj("geometry/fox.obj");
-	mesh->ScaleTo(30);
-	mesh->SetCenter(Vec3d(-10.0f, 10.0f, -5.0f));
-	mesh->SetMaterial({ Vec3d::ZAXIS, 32, 0.9f, TEX_INVALID });
-	mesh->GetMaterial().reflectivity = 0.3f;
-	mesh->onFlag = true;
+	mesh->LoadObj("geometry/cube.obj");
+	mesh->ScaleTo(10);
+	mesh->SetCenter(Vec3d(0.0f, 3.0f, 0.0f));
+	mesh->Rotate(mesh->GetCenter(), Vec3d::ZAXIS, 0.0f);
+	mesh->SetMaterial({ Vec3d::XAXIS, 32, 0.9f, (GLuint) TEX_INVALID });
+	mesh->GetMaterial().reflectivity = 0.7f;
 	tmeshes.push_back(std::move(mesh));
 
-	// Complex reciever
 	mesh = std::make_unique<TMesh>();
-	mesh->LoadObj("geometry/lamp.obj");
-	mesh->ScaleTo(30);
-	mesh->SetCenter(Vec3d(0.0f, 20.0f, 4.0f));
-	mesh->SetMaterial({ Vec3d::YAXIS, 32, 0.9f, TEX_INVALID });
-	mesh->GetMaterial().reflectivity = 1.0f;
-	mesh->onFlag = true;
+	mesh->LoadObj("geometry/cube.obj");
+	mesh->ScaleTo(10);
+	mesh->SetCenter(Vec3d(10.0f, 3.0f, 0.0f));
+	mesh->Rotate(mesh->GetCenter(), Vec3d::ZAXIS, 0.0f);
+	mesh->SetMaterial({ Vec3d::YAXIS, 32, 0.9f, (GLuint) TEX_INVALID });
+	mesh->GetMaterial().reflectivity = 0.7f;
 	tmeshes.push_back(std::move(mesh));
 
-	Vec3d lightStart = Vec3d(0.0f, 40.0f, 2.0f);
+	mesh = std::make_unique<TMesh>();
+	mesh->LoadObj("geometry/cube.obj");
+	mesh->ScaleTo(10);
+	mesh->SetCenter(Vec3d(-10.0f, 3.0f, 0.0f));
+	mesh->Rotate(mesh->GetCenter(), Vec3d::ZAXIS, 0.0f);
+	mesh->SetMaterial({ Vec3d::ZAXIS, 32, 0.9f, (GLuint) TEX_INVALID });
+	mesh->GetMaterial().reflectivity = 0.7f;
+	tmeshes.push_back(std::move(mesh));
 
-	auto light = std::make_unique<Light>(lightStart, 512, 512, 90.0f);
-	lights.push_back(std::move(light));
-	light = std::make_unique<Light>(lightStart, 512, 512, 90.0f);
-	lights.push_back(std::move(light));
-	light = std::make_unique<Light>(lightStart, 512, 512, 90.0f);
-	lights.push_back(std::move(light));
-	light = std::make_unique<Light>(lightStart, 512, 512, 90.0f);
-	lights.push_back(std::move(light));
+	// Light rectangle
+	areaLight = std::make_unique<TMesh>();
+	areaLight->LoadObj("geometry/plane.obj");
+	float scale = 5.0f;
+	areaLight->ScaleTo(scale);
+	areaLight->SetCenter(Vec3d(-10.0f, 20.0f, 5.0f));
+
+
 	{
-		int framesN = 360;
-		char fname[30] = "";
+		int framesN = 600;
+		char fname[50] = "";
 		for (int i = 0; i < framesN; i++)
 		{
-			float speed = .1f;
-			lights[0]->SetCenter(lights[0]->GetCenter() + Vec3d(speed, 0.0f, speed));
-			lights[1]->SetCenter(lights[1]->GetCenter() + Vec3d(-speed, 0.0f, speed));
-			lights[2]->SetCenter(lights[2]->GetCenter() + Vec3d(-speed, 0.0f, -speed));
-			lights[3]->SetCenter(lights[3]->GetCenter() + Vec3d(speed, 0.0f, -speed));
+			tmeshes[1]->Rotate(Vec3d::ZEROS, Vec3d::YAXIS, 360 / (float) framesN);
+			tmeshes[2]->Rotate(Vec3d::ZEROS, Vec3d::YAXIS, 360 / (float) framesN);
+			tmeshes[3]->Rotate(Vec3d::ZEROS, Vec3d::YAXIS, 360 / (float) framesN);
+			//areaLight->Rotate(Vec3d::ZEROS, Vec3d::YAXIS, 1);
+			//views[0]->GetPPC()->SetPose(views[0]->GetPPC()->C.Rotate(Vec3d::ZEROS, Vec3d::YAXIS, 1), Vec3d::ZEROS, Vec3d::YAXIS);
 
-			for (auto& light : lights) light->UpdateShadowMap(*this);
-			//sprintf_s(fname, "frames/shadows/frame_%d.tiff", i);
-			//views[0]->GetFB()->SaveAsTiff(fname);
-			Render();
+			//Render();
+
+			views[0]->Redraw();
+
+			Fl::check();
+			//glReadPixels(0, 0, views[0]->GetFB()->w, views[0]->GetFB()->h, GL_RGBA, GL_UNSIGNED_BYTE, views[0]->GetFB()->pix);
+			sprintf_s(fname, "frames/soft_shadows/frame_%d.tiff", i);
+			views[0]->GetFB()->SaveAsTiff(fname);
+		}
+		for (int i = 0; i < framesN; i++)
+		{
+			areaLight->Translate((Vec3d::XAXIS * 20.0f) / framesN);
+			views[0]->Redraw();
+			Fl::check();
+		}
+		for (int i = 0; i < framesN; i++)
+		{
+			areaLight->ScaleTo(scale + 0.1*i);
+			views[0]->Redraw();
 			Fl::check();
 		}
 	}
@@ -243,7 +284,7 @@ void Scene::RunProjector()
 	int h = 480;
 	int w = 640;
 	float hfov = 55.0f;
-	Vec3d cameraStart(-3.0f, 2.0f, 3.0f);
+	Vec3d cameraStart(-3.0f, 3.0f, 3.0f);
 
 	TEX_HANDLE hello = LoadTexture("textures/hellotext.tiff", false);
 
@@ -262,7 +303,7 @@ void Scene::RunProjector()
 	mesh->ScaleTo(10);
 	mesh->SetCenter(Vec3d::ZEROS);
 	mesh->onFlag = true;
-	mesh->SetMaterial({ Vec3d::ONES * .8f, 32, 0.9f, TEX_INVALID });
+	mesh->SetMaterial({ Vec3d::ONES * .8f, 32, 0.9f, (GLuint) TEX_INVALID });
 	tmeshes.push_back(std::move(mesh));
 
 	Vec3d lightStart = Vec3d(2.5f, 1.5f, 2.0f);
@@ -522,6 +563,45 @@ TEX_HANDLE Scene::LoadTexture(const char * filename, bool isMipmap)
 	
 	textures.push_back(std::move(buffer));
 	return (TEX_HANDLE) textures.size() - 1;
+}
+
+GLubyte texData[] = { 255, 255, 255, 255 };
+
+void Scene::PerSessionHWInit() {
+
+	if (hwPerSessionInit)
+		return;
+
+	// create textures
+	// 1. Create texture handles "glCreateTextures"
+	// 2. Create each texture for each texture handle "glTexImage2D"
+	//		send the texels to be used for each texture to HW
+	//		the texels can be sent from a FrameBuffer object, i.e. the unsigned int *pix pointer
+
+	glGenTextures(1, &defaultTexture);
+	glBindTexture(GL_TEXTURE_2D, defaultTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, texData);
+
+
+	TEX_HANDLE checker = LoadTexture("textures/fox_head_color.tiff", false);
+
+	if (checker != TEX_INVALID)
+	{
+		GLuint textureHandle = 0;
+		glGenTextures(1, &textureHandle);
+		glBindTexture(GL_TEXTURE_2D, textureHandle);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, textures[checker]->w, textures[checker]->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, textures[checker]->pix);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+		//tmeshes[4]->GetMaterial().texture = textureHandle;
+	}
+
+	//tex_handles.push_back(texName);
+	hwPerSessionInit = true;
+
 }
 
 

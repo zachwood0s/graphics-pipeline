@@ -7,7 +7,7 @@
 #include "vec3d.h"
 #include "ppc.h"
 
-using TEX_HANDLE = int;
+using TEX_HANDLE = GLuint;
 constexpr auto TEX_INVALID = -1;
 
 class FrameBuffer{
@@ -23,6 +23,7 @@ public:
 	unsigned int levels;
 
 	int w, h;
+	int isHW = 0;
 	FrameBuffer(int _w, int _h);
 	~FrameBuffer();
 

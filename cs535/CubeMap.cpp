@@ -10,7 +10,7 @@ unsigned int CubeMap::Lookup(Vec3d point3d)
 	// Find the projection that succeeds
 	for (unsigned int i = 0; i < Face::NUM_FACES; i++)
 	{
-		unsigned int face = i; // (lastSuccessful + i) % Face::NUM_FACES;
+		unsigned int face = (lastSuccessful + i) % Face::NUM_FACES;
 		//std::cout << face << std::endl;
 		Vec3d p;
 		if (!views[face]->GetPPC()->Project(point3d, p))
@@ -25,11 +25,12 @@ unsigned int CubeMap::Lookup(Vec3d point3d)
 		lastSuccessful = face;
 		float s = p[0] / views[face]->GetFB()->w;
 		float t = p[1] / views[face]->GetFB()->h;
+
+		// Bilinear interpolation lookup, could use this to also specify lod but didn't have time
 		auto[color, alpha] = views[face]->GetFB()->GetTexVal(Vec3d(s, t, 0), 0);
 		return color.GetColor();
 	}
-	std::cout << "failed" << std::endl;
-	return Vec3d(1, 0, 0).GetColor();
+	return Vec3d::ZEROS.GetColor();
 }
 
 std::unique_ptr<CubeMap> CubeMap::FromSingleTiff(const char * fname, bool vertical)

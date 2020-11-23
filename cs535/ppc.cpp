@@ -209,6 +209,37 @@ void PPC::CacheInverted()
 	invertedCached = M.Inverted();
 }
 
+void PPC::SetIntrinsicsHW() {
+
+	glViewport(0, 0, w, h);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	float f = GetFocalLength();
+	float hither = 0.25f;
+	float yon = 1000.0f;
+	float scalef = hither / f;
+	float wf = a.Length() * w;
+	float hf = b.Length() * h;
+	glFrustum(-wf / 2.0f*scalef, wf / 2.0f*scalef, -hf / 2.0f*scalef,
+		hf / 2.0f*scalef, hither, yon);
+	glMatrixMode(GL_MODELVIEW); // default matrix mode
+
+}
+
+void PPC::SetExtrinsicsHW() {
+
+	Vec3d eye, look, down;
+	eye = C;
+	look = C + (a^b)*100.0f;
+	down = b.Normalized();
+	glLoadIdentity();
+	gluLookAt(eye[0], eye[1], eye[2],
+		look[0], look[1], look[2],
+		-down[0], -down[1], -down[2]);
+
+}
+
+
 #pragma endregion
 
 #pragma region Visualization

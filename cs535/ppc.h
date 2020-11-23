@@ -90,6 +90,9 @@ public:
 	/// <returns>The focal length of the camera</returns>
 	float GetFocalLength();
 
+	void SetIntrinsicsHW();
+	void SetExtrinsicsHW();
+
 	/// <summary>
 	/// Interpolates this camera between the two provided cameras. This interpolates the postition,
 	/// look at point and upguidance vectors.

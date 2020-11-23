@@ -9,6 +9,7 @@
 
 class Scene;
 
+
 /// <summary>
 /// A world view is essentially a framebuffer with an attached camera. A few of the framebuffer drawing
 /// functions have been ported into this class to make them easier to use without haveing to pass the camera
@@ -19,12 +20,22 @@ class Scene;
 /// </summary>
 class WorldView
 {
+public:
+	enum RENDER_MODE
+	{
+		Software,
+		Hardware,
+		GPU
+	};
+
 private:
 	std::unique_ptr<PPC> ppc;
 	std::unique_ptr<FrameBuffer> fb;
 	std::unique_ptr<FLWindow> window;
+	RENDER_MODE mode;
 
 public:
+
 	int id;
 	bool showCameraBox;
 	bool showCameraScreen;
@@ -60,6 +71,12 @@ public:
 	WorldView(int bufferW, int bufferH, float hfov, int _id);
 
 	void Render(Scene &scene, bool disableLighting);
+	void RenderSW(Scene &scene, bool disableLighting);
+	void RenderHW(Scene &scene);
+	void RenderGPU(Scene &scene);
+
+	void SetMode(RENDER_MODE mode);
+
 	void Redraw();
 	PPC* GetPPC();
 	FrameBuffer* GetFB();

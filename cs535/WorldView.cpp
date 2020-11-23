@@ -25,7 +25,31 @@ WorldView::WorldView(int bufferW, int bufferH, float hFov, int _id)
 	backgroundShader = Shaders::solidBackground;
 }
 
+void WorldView::SetMode(WorldView::RENDER_MODE _mode)
+{
+	mode = _mode;
+	switch (mode)
+	{
+	case WorldView::Software:
+		fb->isHW = 0;
+		break;
+
+	case WorldView::Hardware:
+		fb->isHW = 1;
+		break;
+	default:
+		fb->isHW = 2;
+		break;
+	}
+
+}
+
 void WorldView::Render(Scene & scene, bool disableLighting)
+{
+	RenderSW(scene, disableLighting);
+}
+
+void WorldView::RenderSW(Scene & scene, bool disableLighting)
 {
 	backgroundShader(scene, *this);
 	fb->ClearZB();
@@ -78,6 +102,71 @@ void WorldView::Render(Scene & scene, bool disableLighting)
 	for (auto& proj : scene.projectors) Draw3DPoint(proj->GetCenter(), 5, Vec3d::YAXIS);
 
 	Redraw();
+}
+
+void WorldView::RenderHW(Scene & scene)
+{
+	glEnable(GL_DEPTH_TEST);
+
+	glClearColor(background[0], background[1], background[2], 1.0f);
+	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+
+	ppc->SetIntrinsicsHW();
+	ppc->SetExtrinsicsHW();
+
+
+	for (int tmi = 0; tmi < scene.tmeshes.size(); tmi++) 
+	{
+		if (!scene.tmeshes[tmi]->onFlag || hiddenMeshes.count(tmi))
+			continue;
+
+		scene.tmeshes[tmi]->DrawHW();
+	}
+
+	Redraw();
+
+}
+
+void WorldView::RenderGPU(Scene & scene)
+{
+
+	// if the first time, call per session initialization
+	if (scene.cgi == NULL) {
+		scene.cgi = std::make_unique<CGInterface>();
+		scene.cgi->PerSessionInit();
+		scene.soi = std::make_unique<SoftShadowsInterface>();
+		scene.soi->PerSessionInit(scene.cgi.get());
+	}
+
+	// clear the framebuffer
+	glClearColor(0.0, 0.0f, 0.5f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	// set intrinsics
+	ppc->SetIntrinsicsHW();
+	// set extrinsics
+	ppc->SetExtrinsicsHW();
+
+	// per frame initialization
+	scene.cgi->EnableProfiles();
+	scene.soi->PerFrameInit();
+	scene.soi->BindPrograms();
+
+	// render geometry
+	for (int tmi = 0; tmi < scene.tmeshes.size(); tmi++) 
+	{
+		if (!scene.tmeshes[tmi]->onFlag || hiddenMeshes.count(tmi))
+			continue;
+
+		scene.tmeshes[tmi]->DrawHW();
+	}
+	glReadPixels(0, 0, GetFB()->w, GetFB()->h, GL_RGBA, GL_UNSIGNED_BYTE, GetFB()->pix);
+
+	scene.soi->PerFrameDisable();
+	scene.cgi->DisableProfiles();
+
+	Redraw();
+
 }
 
 void WorldView::Redraw()

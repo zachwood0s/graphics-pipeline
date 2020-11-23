@@ -1,0 +1,180 @@
+
+struct VertexDataInput {
+	float4 vertex: POSITION;
+	float3 normal: NORMAL;
+	float3 color: COLOR;
+};
+
+struct VertexDataOutput {
+	float4 projv  : POSITION;
+	float3 normal: TEXCOORD0;
+	float3 vxyz: TEXCOORD1;
+	float3 color : COLOR;
+};
+
+struct PixelDataOutput {
+	float3 color : COLOR;
+};
+
+VertexDataOutput VertexMain(VertexDataInput vdi, 
+  uniform float4x4 modelViewProj, uniform float morphFraction,
+  uniform float3 objectCenter, uniform float sphereRadius) {
+
+  VertexDataOutput ret;
+
+  // morph vertex
+//  float3 ray = normalize((vdi.vertex.xyz - objectCenter)); // direction from sphere
+				// center to vertex
+//  float3 sv = objectCenter + ray*sphereRadius;  // position of vertex on sphere
+//  float4 mv; // morphed vertex
+//  mv.xyz = vdi.vertex.xyz + (sv-vdi.vertex.xyz)*morphFraction; 
+//  mv.w = 1.0f;
+
+//  mv = vdi.vertex;
+
+//  ret.projv = mul(modelViewProj, mv);
+  ret.projv = mul(modelViewProj, vdi.vertex);
+  ret.normal = vdi.normal;
+  ret.vxyz = vdi.vertex.xyz;
+//  ret.vxyz = mv.xyz;
+  ret.color = vdi.color;
+  return ret;
+
+}
+
+// guidelines for the fragment shader for A6.2, billboard rendering
+// create billboard rectangle and texture as a preprocess
+// turn on shader when rendering reflective teapot
+// use conventional vertex shader, just projection
+// shader uniform parameters: billboard vertices, billboard texture (sampler2D), eye 
+//		(i.e. current position of the user, center of projection of output image)
+
+// 1. compute eye ray, as difference between eye and surface point
+// 2. reflect eye ray about normal to obtain reflected ray
+// 3. intersect refleted ray with billboard rectangle
+// 4. if intersection, lookup billboard texture at intersection point
+		// 5. if color looked up is background, then no intersection, set  color to background
+					// environment mapping for extra credit
+		// 6. if color is not background, then set color to looked up color
+// 6. if no intersection, set color to background (environment mapping for extra credit)
+
+// guidelines for the soft shadow A6.3 question
+// shader uniform parameters: light rectangle, the floor quad, the vertices of box 1,
+//		the vertices of box 2
+// shader algorithm
+//		1. hard code sampling factor of light, sfl = 2 for 2x2, = 16 for 16x16
+//		1.5 lv = sfl x sfl; // assume that none of the light samples are visible
+//		2. for every light sample row i
+//		3. for every light sample column j
+//		4.	intersect ray(xyz, Lij) with all boxes
+//		5.		if one intersection is found lv--, move on to next light sample
+//		6. return color = input.color * lv / sfl / sfl;
+
+// opengl textures
+//  Initialization (once per session)
+//	1. create texture handle
+//	2. create actual texture by passing the pixels to the GPU, which are to be 
+//			used as texels, pass the image (fb->pix) to be used as texture
+//  For every frame
+//  1. turn on texturing for TMesh that has to be rendered with textures
+//	2. bind texture to be used with this mesh
+//  3. issue texture coordinates, the same way xyz, rgb, nxnynz are issued per vertex
+
+PixelDataOutput FragmentMain(VertexDataOutput pdi, uniform float3 ppcC,
+	uniform float3 billv0, uniform float3 billv1) {
+
+  PixelDataOutput ret;
+  ret.color = pdi.color;
+
+  // eye ray computation
+  float3 eyeRay = normalize(pdi.vxyz-ppcC);
+  ret.color.rgb = (eyeRay + float3(1.0f, 1.0f, 1.0f)) / 2.0f;
+
+  // reflected ray computation
+  float3 normal = normalize(pdi.normal);
+  ret.color.rgb = (normal + float3(1.0f, 1.0f, 1.0f)) / 2.0f;
+  float3 reflectedRay = reflect(eyeRay, normal); // requires more work
+  ret.color.rgb = (reflectedRay + float3(1.0f, 1.0f, 1.0f)) / 2.0f;
+
+  return ret;
+
+}
+
+VertexDataOutput VertexMainOLD(VertexDataInput vdi, 
+  uniform float4x4 modelViewProj, uniform float sphereRadius,
+  uniform float3 sphereCenter, uniform float morphFraction) {
+
+  VertexDataOutput ret;
+  float3 morphDirection = normalize(vdi.vertex.xyz-sphereCenter);
+  float3 finalPosition = sphereCenter + morphDirection*sphereRadius;
+  float4 morphedVertex;
+  morphedVertex.xyz = vdi.vertex.xyz + (finalPosition-vdi.vertex.xyz)*morphFraction;
+  morphedVertex.w = 1.0f;
+//  ret.projv = mul(modelViewProj, vdi.vertex);
+  ret.projv = mul(modelViewProj, morphedVertex);
+  ret.normal = vdi.normal;
+  ret.vxyz = vdi.vertex.xyz;
+  ret.color = vdi.color;
+  return ret;
+
+}
+
+TRIANGLE void GeometryMain(AttribArray<VertexDataOutput> tverts,
+	uniform float4x4 modelViewProj) {
+
+	emitVertex(tverts[0]);
+	emitVertex(tverts[1]);
+	emitVertex(tverts[2]);
+	return;
+
+}
+
+
+PixelDataOutput FragmentMainOLD(VertexDataOutput pdi, 
+	uniform float3 eye, uniform float3 light,
+	uniform float3 tlc, uniform float3 trc, uniform float3 blc) {
+
+  PixelDataOutput ret;
+  ret.color = pdi.color;
+  return ret;
+
+  float3 materialColor = float3(1.0f, 0.0f, 0.0f);
+  float ka = 0.4f;
+  float3 eyev = normalize(eye-pdi.vxyz);
+  float3 normal = normalize(pdi.normal);
+  float3 lightv = normalize(light-pdi.vxyz);
+  float kd = dot(normal, lightv);
+  kd = (kd < 0.0f) ? 0.0f : kd;
+  float3 litColor = materialColor*(ka + (1-ka)*kd);
+  ret.color.rgb = litColor;
+
+//  ret.color.rgb = float3(1.0f, 1.0f, 0.0f);
+//  ret.color.rgb = eye;
+
+//  ret.color.rgb = (pdi.normal + float3(1.0f, 1.0f, 1.0f))/2.0f;
+
+// float3 c0;
+// c0 = float3(-60.8652, 0, -13.9045);
+// float3 c1;
+// c1 = float3(39.5258, 47.25, 48.5653);
+// ret.color.rgb = float3(0.0f, 0.0f, 0.0f);
+// ret.color.r = (pdi.vxyz.x-c0.x)/(c1.x-c0.x);
+// ret.color.g = (pdi.vxyz.y-c0.y)/(c1.y-c0.y);
+// ret.color.b = (pdi.vxyz.z-c0.z)/(c1.z-c0.z);
+
+
+// pass top left, top right, and bottom left corners of the billboard to fragment shader (tlc, trc, blc) 
+ 
+// compute reflected ray at current pixel (fragment) from pdi.xyz, pdi.normal, and eye
+
+// intersect reflected ray with billboard plane
+
+// if intersection, compute billboard texture coordinates
+
+// lookup billboard texture at intersection texture coordinates
+
+// if not background (i.e. transparent) set color
+ 
+ return ret;
+
+}
